@@ -1,0 +1,22 @@
+name = "novahiring-frontend-test"
+compatibility_date = "2025-08-12"
+compatibility_flags = ["nodejs_compat"]
+
+# Directorio de salida para Pages
+pages_build_output_dir = ".vercel/output/static"
+
+# Configuración específica para producción
+[env.production]
+name = "novahiring-frontend-test"
+
+[env.production.vars]
+NODE_ENV = "production"
+NEXT_PUBLIC_BACKEND = ""
+
+# Configuración específica para preview
+[env.preview]
+name = "novahiring-frontend-test-preview"
+
+[env.preview.vars]
+NODE_ENV = "development"
+NEXT_PUBLIC_BACKEND = ""

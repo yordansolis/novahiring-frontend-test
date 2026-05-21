@@ -1,0 +1,54 @@
+name: Discord Notifications
+
+on:
+  push:
+  pull_request:
+    types: [opened, closed, synchronize, reopened]
+
+jobs:
+  notify:
+    name: Notify Discord
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Notify push
+        if: github.event_name == 'push'
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: |
+            📦 **Push** en `${{ github.ref_name }}` por **${{ github.actor }}**
+            > ${{ github.event.head_commit.message }}
+
+      - name: Notify PR opened / reopened
+        if: github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'reopened')
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: "🔀 **PR abierta** — *${{ github.event.pull_request.title }}* por **${{ github.actor }}**\n${{ github.event.pull_request.html_url }}"
+
+      - name: Notify PR updated
+        if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: "🔄 **PR actualizada** — *${{ github.event.pull_request.title }}* por **${{ github.actor }}**\n${{ github.event.pull_request.html_url }}"
+
+      - name: Notify PR merged
+        if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: "✅ **PR mergeada** — *${{ github.event.pull_request.title }}* por **${{ github.actor }}**\n${{ github.event.pull_request.html_url }}"
+
+      - name: Notify PR closed without merge
+        if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == false
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: "🚫 **PR cerrada sin merge** — *${{ github.event.pull_request.title }}* por **${{ github.actor }}**\n${{ github.event.pull_request.html_url }}"
