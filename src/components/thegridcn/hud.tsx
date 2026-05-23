@@ -1,8 +1,6 @@
 "use client"
 
-// Re-export all HUD components from their individual files
-export { Reticle } from "./reticle"
-export { HUDFrame } from "./hud-frame"
-export { Stat } from "./stat"
-export { SpeedIndicator } from "./speed-indicator"
-export { RegenIndicator } from "./regen-indicator"
+// HUD subcomponent files are not yet present in this installation.
+// Placeholder exports to keep TypeScript happy until the full package is added.
+export {}
+

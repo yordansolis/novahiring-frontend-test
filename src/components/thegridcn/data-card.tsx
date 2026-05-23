@@ -91,7 +91,7 @@ export function DataCard({
             key={index}
             label={field.label}
             value={field.value}
-            highlight={field.highlight}
+            highlight={field.highlight ?? false}
           />
         ))}
       </div>

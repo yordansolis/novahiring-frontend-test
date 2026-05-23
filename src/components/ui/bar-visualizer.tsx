@@ -95,7 +95,7 @@ export function useAudioVolume(
         analyser.getByteFrequencyData(dataArray)
         let sum = 0
         for (let i = 0; i < dataArray.length; i++) {
-          const a = dataArray[i]
+          const a = dataArray[i] ?? 0
           sum += a * a
         }
         const newVolume = Math.sqrt(sum / dataArray.length) / 255
@@ -215,7 +215,7 @@ export function useMultibandVolume(
           const endIdx = Math.min(sliceStart + (i + 1) * chunkSize, sliceEnd)
 
           for (let j = startIdx; j < endIdx; j++) {
-            sum += normalizeDb(dataArray[j])
+            sum += normalizeDb(dataArray[j] ?? 0)
             count++
           }
 
@@ -225,7 +225,7 @@ export function useMultibandVolume(
         // Only update state if bands changed significantly
         let hasChanged = false
         for (let i = 0; i < chunks.length; i++) {
-          if (Math.abs(chunks[i] - bandsRef.current[i]) > 0.01) {
+          if (Math.abs((chunks[i] ?? 0) - (bandsRef.current[i] ?? 0)) > 0.01) {
             hasChanged = true
             break
           }
@@ -415,7 +415,7 @@ const BarVisualizerComponent = forwardRef<HTMLDivElement, BarVisualizerProps>(
           // Only update if values changed significantly
           let hasChanged = false
           for (let i = 0; i < barCount; i++) {
-            if (Math.abs(newBands[i] - fakeVolumeBandsRef.current[i]) > 0.05) {
+            if (Math.abs((newBands[i] ?? 0) - (fakeVolumeBandsRef.current[i] ?? 0)) > 0.05) {
               hasChanged = true
               break
             }
@@ -487,7 +487,7 @@ const BarVisualizerComponent = forwardRef<HTMLDivElement, BarVisualizerProps>(
               key={index}
               heightPct={heightPct}
               isHighlighted={isHighlighted}
-              state={state}
+              {...(state !== undefined ? { state } : {})}
             />
           )
         })}

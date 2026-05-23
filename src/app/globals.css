@@ -1,3 +1,92 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --ds-background-100: #0a0a0b;
+    --ds-background-200: #111113;
+    --ds-background-300: #18181b;
+    --ds-gray-100: #1a1a1f;
+    --ds-gray-200: #26262c;
+    --ds-gray-300: #3a3a42;
+    --ds-gray-400: #52525e;
+    --ds-gray-500: #71717a;
+    --ds-gray-600: #a1a1aa;
+    --ds-gray-700: #d4d4d8;
+    --ds-gray-800: #e4e4e7;
+    --ds-gray-900: #f4f4f5;
+    --ds-gray-1000: #fafafa;
+    --ds-accent-blue: #3b82f6;
+    --ds-accent-green: #22c55e;
+    --ds-accent-red: #ef4444;
+    --ds-accent-amber: #f59e0b;
+    --ds-border: rgba(255, 255, 255, 0.08);
+    --ds-border-subtle: rgba(255, 255, 255, 0.04);
+
+    /* shadcn/ui component token bridge — mapped to ds-* tokens */
+    --background: #0a0a0b;
+    --foreground: #fafafa;
+    --card: #111113;
+    --card-foreground: #fafafa;
+    --primary: #3b82f6;
+    --primary-foreground: #ffffff;
+    --secondary: #18181b;
+    --secondary-foreground: #fafafa;
+    --muted: #18181b;
+    --muted-foreground: #71717a;
+    --accent: #26262c;
+    --accent-foreground: #fafafa;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --border: rgba(255, 255, 255, 0.08);
+    --input: #3a3a42;
+    --ring: #3b82f6;
+    --radius-md: 8px;
+
+    /* Sidebar tokens */
+    --sidebar: #111113;
+    --sidebar-foreground: #fafafa;
+    --sidebar-primary: #3b82f6;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #18181b;
+    --sidebar-accent-foreground: #fafafa;
+    --sidebar-border: rgba(255, 255, 255, 0.08);
+    --sidebar-ring: #3b82f6;
+  }
+}
+
+html {
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes btn-glow-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 10px rgba(59, 130, 246, 0.35),
+      0 0 24px rgba(59, 130, 246, 0.18),
+      0 4px 12px rgba(59, 130, 246, 0.28);
+  }
+  50% {
+    box-shadow:
+      0 0 16px rgba(59, 130, 246, 0.5),
+      0 0 36px rgba(59, 130, 246, 0.28),
+      0 4px 18px rgba(59, 130, 246, 0.4);
+  }
+}
+
+.btn-glow {
+  animation: btn-glow-pulse 2.4s ease-in-out infinite;
+  background: linear-gradient(160deg, #4f93f8 0%, #2563eb 100%);
+  color: #ffffff;
+  transition: background 0.3s ease, color 0.25s ease, box-shadow 0.3s ease;
+}
+
+.btn-glow:hover {
+  background: #f1f5f9 !important;
+  color: #0a0a0b !important;
+  animation-play-state: paused;
+  box-shadow: 0 2px 12px rgba(255, 255, 255, 0.08) !important;
+}
