@@ -343,13 +343,16 @@ const Orb = dynamic(
 )
 ```
 
-#### ⚠️ Three.js / @react-three/fiber compatibility
+#### ⚠️ @react-three/fiber — versión fijada en v8
 
-`@react-three/fiber` **v9** requires **React 19**. This project uses React 18.3.1. Installing `@react-three/fiber@^9` will crash at runtime with `TypeError: Cannot read properties of undefined (reading 'S')` in `createReconciler`.
+`@react-three/fiber` **v9** requiere React 19. Este proyecto usa React 18.3.1. La v9 crashea con `TypeError: Cannot read properties of undefined (reading 'S')` en `createReconciler`.
 
-The `orb.tsx` component was deliberately written with CSS + Framer Motion to avoid this dependency. **Do not** replace it with a Three.js/WebGL implementation unless React is upgraded to v19+.
+**Versiones correctas (React 18 compatible):**
+- `@react-three/fiber@^8.17` ✅
+- `@react-three/drei@^9.122` ✅
+- `three@^0.184` ✅
 
-The packages `three`, `@react-three/fiber`, `@react-three/drei` remain in `package.json` (installed by the ElevenLabs CLI) but are **not imported** by any component. Do not use them.
+**No actualizar** `@react-three/fiber` a v9+ sin antes actualizar React a v19.
 
 ### Homepage component patterns
 
@@ -499,6 +502,14 @@ The homepage targets **non-technical business owners** (clinic owners, recruiter
 | `noUncheckedIndexedAccess` | Use `.map()` callbacks; use `.at(i) ?? fallback` for single access |
 | `exactOptionalPropertyTypes` | Never pass `prop={maybeUndefined}` — use `{...(val !== undefined ? { prop: val } : {})}` |
 | `noUnusedLocals` | Prefix unused destructure vars with `_`; consume all module-level consts in JSX |
+
+## Historial de commits importantes
+
+| Fecha | Commit | Descripción |
+|---|---|---|
+| 2026-05-22 21:30 -05 | `2bd649f` | feat: upgrade interview chatbot con ElevenLabs — orb CSS, conversation layout, TypeScript fixes. **Punto de retorno seguro antes del experimento con @react-three/fiber v8.** |
+
+> Si algo se rompe después de este punto, revertir con: `git revert HEAD` o `git reset --hard 2bd649f`
 
 ## CI/CD
 
