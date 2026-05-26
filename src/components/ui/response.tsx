@@ -14,6 +14,7 @@ export const Response = memo(
         "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
         className
       )}
+      mode="static"
       {...props}
     />
   ),

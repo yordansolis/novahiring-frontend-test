@@ -1,4 +1,5 @@
 import { adminFetch } from "@/lib/api"
+import { getCached } from "@/lib/cache"
 import type { CandidateListItem, CvAuditItem, EvaluateResponse } from "@/features/candidates/types"
 
 async function throwOnError(res: Response): Promise<void> {
@@ -13,18 +14,31 @@ async function throwOnError(res: Response): Promise<void> {
   }
 }
 
-export async function getCandidates(jobId: string): Promise<CandidateListItem[]> {
-  const res = await adminFetch(`/candidates/${jobId}`)
-  await throwOnError(res)
-  return res.json() as Promise<CandidateListItem[]>
+export function getCandidates(jobId: string, force = false): Promise<CandidateListItem[]> {
+  return getCached(
+    `candidates:${jobId}`,
+    async () => {
+      const res = await adminFetch(`/candidates/${jobId}`)
+      await throwOnError(res)
+      return res.json() as Promise<CandidateListItem[]>
+    },
+    { force }
+  )
 }
 
-export async function getCvAudit(jobId: string): Promise<CvAuditItem[]> {
-  const res = await adminFetch(`/candidates/${jobId}/cvs`)
-  await throwOnError(res)
-  return res.json() as Promise<CvAuditItem[]>
+export function getCvAudit(jobId: string, force = false): Promise<CvAuditItem[]> {
+  return getCached(
+    `cvaudit:${jobId}`,
+    async () => {
+      const res = await adminFetch(`/candidates/${jobId}/cvs`)
+      await throwOnError(res)
+      return res.json() as Promise<CvAuditItem[]>
+    },
+    { ttl: 60_000, force }
+  )
 }
 
+// Not cached — mutation
 export async function triggerEvaluation(jobId: string): Promise<EvaluateResponse> {
   const res = await adminFetch(`/candidates/${jobId}/evaluate`, { method: "POST" })
   await throwOnError(res)

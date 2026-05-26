@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { NavigationProgress } from "@/components/providers/NavigationProgress";
 import "./globals.css";
 
 const inter = Inter({
@@ -29,11 +31,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="es"
-      className={`dark ${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
       <body className="bg-[var(--ds-background-100)] text-[var(--ds-gray-1000)] font-sans antialiased">
-        {children}
+        <ThemeProvider>
+          <NavigationProgress />
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

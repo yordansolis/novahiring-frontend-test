@@ -40,11 +40,11 @@ export default function CvsPage({ params }: Props) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     setLoading(true)
     setError(null)
     try {
-      const data = await getCvAudit(params.job_id)
+      const data = await getCvAudit(params.job_id, force)
       setCvs(data)
     } catch {
       setError("Error al cargar los CVs. Comprueba tu conexión e inténtalo de nuevo.")
@@ -85,7 +85,7 @@ export default function CvsPage({ params }: Props) {
             </div>
           </div>
           <Button
-            onClick={() => void load()}
+            onClick={() => void load(true)}
             disabled={loading}
             variant="outline"
             size="sm"

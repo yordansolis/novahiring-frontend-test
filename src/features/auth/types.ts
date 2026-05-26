@@ -44,4 +44,5 @@ export const STORAGE_KEYS = {
   candidateToken: "nova_candidate_token",
   candidateId: "nova_candidate_id",
   candidateJobId: "nova_candidate_job_id",
+  candidateUsername: "nova_candidate_username",
 } as const

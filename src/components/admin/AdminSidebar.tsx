@@ -19,6 +19,7 @@ import {
   Clock3,
   TrendingUp,
   Building2,
+  Award,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
@@ -67,6 +68,7 @@ const JOB_NAV_ITEMS = [
   { href: "/report", label: "Informe IA", icon: FileText },
   { href: "/profile", label: "Criterios", icon: ClipboardList },
   { href: "/cvs", label: "Auditoría CVs", icon: ScrollText },
+  { href: "/audit", label: "Proceso", icon: Award },
 ] as const
 
 interface AdminSidebarProps extends React.ComponentProps<typeof Sidebar> {
@@ -86,10 +88,10 @@ export function AdminSidebar({ jobId, ...props }: AdminSidebarProps) {
   const [creating, setCreating] = React.useState(false)
   const [createError, setCreateError] = React.useState<string | null>(null)
 
-  const loadJobs = React.useCallback(async () => {
+  const loadJobs = React.useCallback(async (force = false) => {
     setJobsLoading(true)
     try {
-      const data = await getJobs()
+      const data = await getJobs(force)
       setJobs(data.jobs)
     } catch {
       setJobs([])
@@ -123,7 +125,7 @@ export function AdminSidebar({ jobId, ...props }: AdminSidebarProps) {
       setSheetOpen(false)
       setFormTitle("")
       setFormNiche("")
-      await loadJobs()
+      await loadJobs(true)
       router.push(`/jobs/${newJob.job_id}`)
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : "Error al crear la vacante")
@@ -138,11 +140,18 @@ export function AdminSidebar({ jobId, ...props }: AdminSidebarProps) {
         <SidebarHeader className="border-b border-[var(--ds-border)] pb-0">
           <div className="flex h-14 items-center px-3 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2">
             <Image
+              src="/logo-withe.png"
+              alt="NovaHiring"
+              width={2172}
+              height={724}
+              className="h-7 w-auto opacity-90 group-data-[collapsible=icon]:hidden dark:hidden"
+            />
+            <Image
               src="/logo.png"
               alt="NovaHiring"
               width={1768}
               height={340}
-              className="h-7 w-auto opacity-90 group-data-[collapsible=icon]:hidden"
+              className="hidden h-7 w-auto opacity-90 group-data-[collapsible=icon]:hidden dark:block"
             />
             <Image
               src="/icon.png"

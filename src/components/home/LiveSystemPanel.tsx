@@ -118,7 +118,7 @@ export function LiveSystemPanel() {
           Puesto
         </p>
         <p className="text-sm font-medium text-[var(--ds-gray-700)]">
-          Desarrollador Full Stack — Clínica Digital
+          Desarrollador Full Stack
         </p>
       </div>
 

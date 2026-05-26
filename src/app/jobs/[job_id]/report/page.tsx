@@ -75,12 +75,12 @@ export default function ReportPage({ params }: Props) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     setLoading(true)
     setError(null)
     setReport(null)
     try {
-      const text = await getJobReport(params.job_id)
+      const text = await getJobReport(params.job_id, force)
       setReport(text)
     } catch {
       setError(
@@ -133,7 +133,7 @@ export default function ReportPage({ params }: Props) {
           {/* Right — actions */}
           <div className="flex shrink-0 items-center gap-2">
             <Button
-              onClick={() => void load()}
+              onClick={() => void load(true)}
               disabled={loading}
               variant="outline"
               size="sm"

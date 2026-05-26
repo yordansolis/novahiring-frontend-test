@@ -33,11 +33,18 @@ export function CtaFooter() {
 
         <div className="mt-20 flex flex-col items-center gap-4">
           <Image
+            src="/logo-withe.png"
+            alt="NovaHiring"
+            width={2172}
+            height={724}
+            className="h-10 w-auto opacity-80 dark:hidden"
+          />
+          <Image
             src="/logo.png"
             alt="NovaHiring"
-            width={180}
-            height={44}
-            className="opacity-70"
+            width={1768}
+            height={340}
+            className="hidden h-10 w-auto opacity-70 dark:block"
           />
           <p className="text-xs text-[var(--ds-gray-500)]">
             © 2025 NovaHiring. Todos los derechos reservados.

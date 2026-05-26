@@ -24,8 +24,10 @@ Never use `npm`, `npx`, or `yarn` in this repo.
 - **React**: `^18.3.1`
 - **Styling**: Tailwind CSS `3.4.17` + shadcn/ui (`base-nova` style) — **strictly v3, never v4 syntax**
 - **Animation**: Framer Motion `^12` — scroll-based reveals, entrance animations, AnimatePresence
+- **Charts**: Recharts `^3.8` + shadcn/ui chart primitives (`src/components/ui/chart.tsx`) — AreaChart, LineChart, CartesianGrid, XAxis, YAxis, ReferenceLine, ChartContainer, ChartTooltip, ChartTooltipContent
 - **Headless UI**: `@base-ui/react` — Button, Input, Field primitives
 - **Fonts**: Inter + JetBrains Mono via `next/font/google` (variables: `--font-geist`, `--font-geist-mono`)
+- **Theme**: `next-themes` `^0.4.6` — system preference detection (`defaultTheme="system"`), `attribute="class"`, no manual toggle
 - **Deploy**: Cloudflare Pages via `@cloudflare/next-on-pages` + Wrangler
 
 ### Tailwind CSS v3 — forbidden v4 syntax
@@ -69,22 +71,22 @@ Set both in `.env.local` for development. In production add them as Cloudflare P
 
 ## Design Tokens
 
-Always use CSS variables — never hardcode color values. All tokens are defined in `src/app/globals.css`.
+Always use CSS variables — never hardcode color values. All tokens are defined in `src/app/globals.css` and **automatically switch between light and dark mode**. Light values live in `:root {}`, dark values in `.dark {}`.
 
 ### Backgrounds
-| Token | Value | Role |
-|---|---|---|
-| `var(--ds-background-100)` | `#0a0a0b` | Page background |
-| `var(--ds-background-200)` | `#111113` | Card / section background |
-| `var(--ds-background-300)` | `#18181b` | Raised surface (panels, inputs, code blocks) |
+| Token | Light value | Dark value | Role |
+|---|---|---|---|
+| `var(--ds-background-100)` | `#ffffff` | `#0a0a0b` | Page background |
+| `var(--ds-background-200)` | `#f8f8f9` | `#111113` | Card / section background |
+| `var(--ds-background-300)` | `#f0f0f2` | `#18181b` | Raised surface (panels, inputs, code blocks) |
 
 ### Text
-| Token | Value | Role |
-|---|---|---|
-| `var(--ds-gray-1000)` | `#fafafa` | Primary text |
-| `var(--ds-gray-700)` | `#d4d4d8` | Secondary text |
-| `var(--ds-gray-600)` | `#a1a1aa` | Muted text / descriptions |
-| `var(--ds-gray-500)` | `#71717a` | Placeholder / labels |
+| Token | Light value | Dark value | Role |
+|---|---|---|---|
+| `var(--ds-gray-1000)` | `#09090b` | `#fafafa` | Primary text |
+| `var(--ds-gray-700)` | `#3f3f46` | `#d4d4d8` | Secondary text |
+| `var(--ds-gray-600)` | `#52525b` | `#a1a1aa` | Muted text / descriptions |
+| `var(--ds-gray-500)` | `#71717a` | `#71717a` | Placeholder / labels |
 
 ### Accents
 | Token | Role |
@@ -95,15 +97,29 @@ Always use CSS variables — never hardcode color values. All tokens are defined
 | `var(--ds-accent-amber)` | Processing, in-progress states |
 
 ### Borders
-| Token / Class | Role |
-|---|---|
-| `var(--ds-border)` | `rgba(255,255,255,0.08)` — divider lines, separator elements |
-| `border-white/[0.14]` | Card and component borders — use this instead of `border-[var(--ds-border)]` on any card surface. The default token (8%) is too subtle for card boundaries; 14% gives visible definition without being flashy. |
+| Token / Class | Light value | Dark value | Role |
+|---|---|---|---|
+| `var(--ds-border)` | `rgba(0,0,0,0.08)` | `rgba(255,255,255,0.08)` | Divider lines, separator elements |
+| `var(--ds-border-subtle)` | `rgba(0,0,0,0.04)` | `rgba(255,255,255,0.04)` | Very subtle separators |
+| `border-white/[0.14]` | ⚠️ invisible in light mode | Visible | **Admin-only** card borders (admin pages always force dark) |
 
-> **Rule:** `bg-[var(--ds-border)]` (as a background) is fine for thin decorative dividers (1px `h-px` lines). For actual `border-*` on cards, chips, and panels always use `border-white/[0.14]`.
+> **Rule:** `bg-[var(--ds-border)]` (as a background) is fine for thin decorative dividers (1px `h-px` lines). For public-facing cards (landing, upload, login, interview) use `border-[var(--ds-border)]`. For admin-only surfaces, `border-white/[0.14]` is still fine since admin pages run in dark mode only.
+
+### Chart tokens
+Recharts color palette — defined in `globals.css` in both `:root {}` and `.dark {}`. Referenced as `var(--chart-N)` inside chart components.
+
+| Token | Light | Dark | Role |
+|---|---|---|---|
+| `--chart-1` | `#2563eb` | `#3b82f6` | Primary series (blue) |
+| `--chart-2` | `#16a34a` | `#22c55e` | Secondary series (green) |
+| `--chart-3` | `#d97706` | `#f59e0b` | Tertiary series (amber) |
+| `--chart-4` | `#9333ea` | `#a855f7` | Quaternary series (purple) |
+| `--chart-5` | `#dc2626` | `#ef4444` | Quinary series (red) |
 
 ### shadcn component token bridge
-`globals.css` also maps shadcn's internal tokens (`--background`, `--foreground`, `--input`, `--ring`, `--primary`, etc.) to the `ds-*` design system so that generated shadcn/base-ui components render correctly in the dark theme. Do not remove these mappings.
+`globals.css` maps shadcn's internal tokens (`--background`, `--foreground`, `--input`, `--ring`, `--primary`, etc.) to the `ds-*` design system in **both** `:root {}` (light) and `.dark {}` (dark) blocks. Do not remove these mappings.
+
+> ⚠️ **Critical:** `tailwind.config.ts` does NOT extend `primary`, `secondary`, `foreground`, etc. This means `bg-primary`, `bg-secondary`, `text-foreground` and similar shadcn Tailwind utilities **produce no CSS output** in this project. Always use DS tokens directly: `bg-[var(--ds-accent-blue)]`, `bg-[var(--ds-background-300)]`, `text-[var(--ds-gray-1000)]`, etc.
 
 ### Tailwind custom utilities (mapped in `tailwind.config.ts`)
 `bg-ds-bg-100`, `bg-ds-bg-200`, `bg-ds-bg-300`, `text-ds-gray-1000`, etc.
@@ -113,7 +129,11 @@ Raw CSS variable syntax also accepted: `bg-[var(--ds-background-200)]`.
 
 | Class | Purpose |
 |---|---|
-| `.btn-glow` | Primary CTA button — blue gradient (`#4f93f8→#2563eb`), pulsing blue glow animation (`btn-glow-pulse`, 2.4s), white hover (`#f1f5f9` bg + dark text, animation paused). Use with `rounded-full border-0`. |
+| `.btn-glow` | Primary CTA button — blue gradient (`#4f93f8→#2563eb`), pulsing blue glow animation (`btn-glow-pulse`, 2.4s). Use with `rounded-full border-0`. |
+
+**`.btn-glow` hover behavior is mode-aware:**
+- **Light mode** — deepens to darker blue gradient (`#3b7ef4→#1d4ed8`) + blue shadow. Text stays white.
+- **Dark mode** — inverts to light (`#f1f5f9` bg + `#0a0a0b` text), animation paused. Defined under `.dark .btn-glow:hover`.
 
 > These are declared outside `@layer` so they have higher cascade priority than all Tailwind utilities, allowing `:hover` overrides to work reliably with `!important`.
 
@@ -133,10 +153,11 @@ src/
 │   │   └── [job_id]/
 │   │       ├── layout.tsx          ← Admin shell: auth guard + sidebar (client component)
 │   │       ├── page.tsx            ← Candidates list + Evaluar button
-│   │       ├── ranking/page.tsx    ← Score-ranked candidate list with progress bars
+│   │       ├── ranking/page.tsx    ← Metrics dashboard: winner hero card, area chart (stock-market style), ranking table
 │   │       ├── report/page.tsx     ← AI narrative report (Regenerar + Imprimir)
 │   │       ├── profile/page.tsx    ← KO criteria + scorecard rubric grid
-│   │       └── cvs/page.tsx        ← CV audit view — full CV text per candidate, filter by result
+│   │       ├── cvs/page.tsx        ← CV audit view — full CV text per candidate, filter by result
+│   │       └── audit/page.tsx      ← Process audit: interview status, scores, close process + winner selection
 │   ├── login/
 │   │   ├── page.tsx                ← redirect("/login/admin")
 │   │   ├── admin/page.tsx          ← Screen A — recruiter login
@@ -163,6 +184,7 @@ src/
 │   │   ├── focus-field.tsx         ← motion.div wrapper — lifts field y:-2 on focus
 │   │   ├── password-input.tsx      ← Input + Eye/EyeOff toggle, tabIndex=-1 on button
 │   │   ├── bar-visualizer.tsx
+│   │   ├── chart.tsx               ← Recharts shadcn wrapper: ChartContainer, ChartTooltip, ChartTooltipContent, ChartStyle
 │   │   ├── conversation.tsx        ← ElevenLabs: Conversation, ConversationContent, ConversationEmptyState, ConversationScrollButton
 │   │   ├── message.tsx             ← ElevenLabs: Message (user/assistant layout), MessageContent (contained/flat variants)
 │   │   ├── orb.tsx                 ← CSS/Framer Motion animated orb — AgentState: null | "thinking" | "listening" | "talking"
@@ -170,6 +192,9 @@ src/
 │   ├── admin/
 │   │   ├── AdminSidebar.tsx        ← Left sidebar: job list (jobId set) or resumen metrics (jobId undefined)
 │   │   └── JobMetricsPanel.tsx     ← Right collapsible panel: candidate pipeline stats per job
+│   ├── providers/
+│   │   ├── ThemeProvider.tsx       ← next-themes wrapper (attribute="class", defaultTheme="system")
+│   │   └── NavigationProgress.tsx  ← Thin 2px blue top bar — fires on internal link click, completes on pathname change
 │   └── thegridcn/                  ← TheGridCN components (radar, data-card, hud)
 ├── features/
 │   ├── auth/
@@ -197,7 +222,8 @@ src/
 │       └── types.ts                     ← JobOffer, JobProfile, JobRanking, RankingCandidate, etc.
 ├── lib/
 │   ├── utils.ts                    ← cn() helper
-│   └── api.ts                      ← adminFetch, candidateFetch, publicFetch, logout helpers, guards
+│   ├── api.ts                      ← adminFetch, candidateFetch, publicFetch, logout helpers, guards
+│   └── cache.ts                    ← module-level TTL cache — getCached(key, fetcher, opts)
 ├── api/          ← HTTP clients for the FastAPI backend (future)
 ├── hooks/        ← Shared custom React hooks (future)
 ├── layouts/      ← Page layouts (future)
@@ -206,6 +232,121 @@ src/
 └── utils/        ← Pure utilities (future)
 ```
 
+### API cache patterns (`src/lib/cache.ts`)
+
+All read API functions go through a module-level TTL cache — a plain `Map` that lives for the browser session, shared across all component instances, zero React overhead.
+
+```typescript
+getCached<T>(key: string, fetcher: () => Promise<T>, opts?: { ttl?: number; force?: boolean }): Promise<T>
+```
+
+- Default TTL: **45 s** (`DEFAULT_TTL = 45_000`)
+- `opts.force = true` bypasses the cache and always fetches — used by manual Actualizar buttons and post-mutation reloads
+- Cached functions use a stable key string (e.g. `"jobs"`, `"job-ranking:${jobId}"`)
+
+| Function | TTL | Notes |
+|---|---|---|
+| `getJobs` | 60 s | Sidebar list |
+| `getJobOffer` | 300 s | Rarely changes |
+| `getJobProfile` | 300 s | KO criteria / rubric |
+| `getJobRanking` | 60 s | Scores can update after evaluation |
+| `getJobReport` | 300 s | AI report — expensive to regenerate |
+| `getJobAudit` | 45 s | Default TTL |
+| `getJobMetrics` | 30 s | Interview progress counts |
+| `getCandidates` | 45 s | |
+| `getCvAudit` | 60 s | |
+
+**Not cached (mutations / real-time):** `createJob`, `closeJob`, `triggerEvaluation`, `getJobNotifications`, `getEmailHealth`
+
+**Pattern for every page `load` function:**
+```tsx
+const load = useCallback(async (force = false) => {
+  const data = await getSomeData(params.id, force)
+  // ...
+}, [params.id])
+
+// Mount: load()          → uses cache
+// Refresh button: load(true) → bypasses cache
+// Post-mutation: load(true)  → bypasses cache
+```
+
+### Navigation progress bar (`src/components/providers/NavigationProgress.tsx`)
+
+A thin 2 px blue bar fixed at the top of the viewport — same UX as Google/YouTube/GitHub. Zero external dependencies.
+
+**How it works:**
+1. Listens to `click` events with `capture: true` on `document`. If the clicked element (or closest ancestor) is an `<a>` with an internal `href` that differs from the current pathname, it starts filling.
+2. Fills 0 → 88% via an 80 ms interval with a decelerating rate (fast early, trickles near the cap).
+3. Snaps to 100% and fades out (360 ms) when `usePathname()` returns a new value.
+
+**Key implementation details:**
+- `activeRef` prevents re-triggering if a second click fires mid-navigation
+- `pointerEvents: none`, `aria-hidden` — zero layout impact and no accessibility noise
+- Color: `var(--ds-accent-blue)` with `boxShadow: "0 0 8px 0 var(--ds-accent-blue)"`
+- Mounted in `src/app/layout.tsx` as the first child of `<ThemeProvider>`, before `{children}`
+- Does not use NProgress, nextjs-toploader, or any external package
+
+**Programmatic trigger — `startProgress()`:**
+
+For form submissions that use `router.push()` (not `<a>` clicks), call `startProgress()` before the push — the bar starts immediately and completes automatically when `usePathname()` detects the route change.
+
+```tsx
+import { startProgress } from "@/components/providers/NavigationProgress"
+
+// In handleSubmit, right before router.push():
+startProgress()
+router.push("/interview")
+```
+
+`startProgress()` is a module-level export backed by a ref (`_startFn`) that points to the component's internal `start` function. It is registered on every effect run and cleared on cleanup — safe to call even if the component hasn't mounted yet (no-op in that case).
+
+**Current usages:** `CandidateLoginForm.tsx` (after successful login → `/interview`).
+
+### Theme system
+
+The app uses `next-themes` with `attribute="class"` and `defaultTheme="system"`. `ThemeProvider` wraps `{children}` in `src/app/layout.tsx`. `<html>` has `suppressHydrationWarning` — do not remove it.
+
+**How it works:** `next-themes` injects an inline script into `<head>` before hydration that reads `prefers-color-scheme` (or saved preference) and immediately sets/removes the `dark` class on `<html>`. No flash-of-wrong-theme.
+
+**No manual toggle** — system preference only. Do not add a sun/moon button.
+
+**No `forcedTheme` anywhere** — all routes (including dashboard and `/jobs/*`) respect the system theme. Do not add `useEffect` blocks that force `document.documentElement.classList.add("dark")`.
+
+### Logo pattern — always use dual images
+
+Two logo files exist in `public/`:
+| File | Use in |
+|---|---|
+| `/logo.png` | Dark mode (`1768×340 px`) |
+| `/logo-withe.png` | Light mode (`2172×724 px`) |
+
+**Every place a logo appears must use both images with `dark:hidden` / `hidden dark:block`:**
+
+```tsx
+{/* Light mode */}
+<Image
+  src="/logo-withe.png"
+  alt="NovaHiring"
+  width={2172}
+  height={724}
+  className="h-10 w-auto dark:hidden"
+  priority
+/>
+{/* Dark mode */}
+<Image
+  src="/logo.png"
+  alt="NovaHiring"
+  width={1768}
+  height={340}
+  className="hidden h-10 w-auto opacity-80 dark:block"
+  priority
+/>
+```
+
+- Pass **actual intrinsic pixel dimensions** per CLAUDE.md rule — use CSS (`h-*`) to control rendered size.
+- Never use CSS `filter: brightness(0)` on a single logo image — always use the proper pair.
+- Current locations: `AuthPageShell.tsx`, `interview/page.tsx` (×2), `CtaFooter.tsx`, `AdminSidebar.tsx`.
+
 ### Feature → Backend mapping
 
 | `src/features/` | Backend (`nova-hiring/`) | Responsibility |
@@ -213,7 +354,7 @@ src/
 | `auth/` | `api/auth.py` | Login, Bearer / X-API-Key token validation, CV upload |
 | `jobs/` | `api/jobs.py` | Job offer text, profile, ranking, AI report |
 | `candidates/` | `api/candidates.py` | Candidate list, evaluation trigger |
-| `interviews/` | `api/interviews.py` | Interview sessions, messages, interrupt flag |
+| `interviews/` | `api/interviews.py` | Interview sessions, messages, interrupt flag, admin session transcript |
 | `interviews/ai/` | `services/ai_client.py` | LLM dialogue UI (dimension scoring) |
 
 ### Auth routes & flows
@@ -230,6 +371,7 @@ src/
 | `/jobs/[job_id]/report` | `hasAdminKey()` | `/login/admin` |
 | `/jobs/[job_id]/profile` | `hasAdminKey()` | `/login/admin` |
 | `/jobs/[job_id]/cvs` | `hasAdminKey()` | `/login/admin` |
+| `/jobs/[job_id]/audit` | `hasAdminKey()` | `/login/admin` |
 | `/interview/*` | `hasCandidateToken()` | `/login/candidate` |
 
 ### Token storage (`src/features/auth/types.ts` — `STORAGE_KEYS`)
@@ -240,6 +382,7 @@ src/
 | `nova_candidate_token` | Bearer token from `POST /auth/candidate/login` |
 | `nova_candidate_id` | candidate_id from candidate login |
 | `nova_candidate_job_id` | job_id from candidate login |
+| `nova_candidate_username` | username typed at login — used to personalize the farewell message in `/interview` |
 
 ### API helpers (`src/lib/api.ts`)
 
@@ -263,13 +406,323 @@ When parsing error responses always look in `body["detail"]` first, then fall ba
 
 The complete API contract is in `docs/specs-candidate.md`. Key implementation rules:
 
+> ⚠️ **REGLA CRÍTICA — NUNCA fabricar mensajes del AI en el frontend:**
+>
+> El backend es la única fuente de verdad para los mensajes de la entrevista. **Nunca construyas ni inventes mensajes del assistant usando datos de otro campo** (como `next_question.question_text`).
+>
+> | Campo | Uso correcto | Uso prohibido |
+> |---|---|---|
+> | `next_question.question_text` | Metadata para el header (dimensión, progreso) | ❌ Como contenido de un mensaje del assistant |
+> | `next_question.dimension_name` | Label del header "Dimensión X" | ❌ Como burbuja de chat |
+> | `message` (de `POST /sessions`) | Mostrar directamente como primer mensaje | ✅ |
+> | `messages[]` (de `GET /sessions/{id}`) | Reemplazar todo el estado local de mensajes | ✅ |
+>
+> **Flujo correcto tras `sendMessage`:**
+> 1. Añadir el mensaje del usuario optimísticamente (UX inmediata)
+> 2. Llamar `pollSession(sid)` → `GET /sessions/{id}` para obtener la respuesta real del AI desde la DB
+> 3. Nunca añadir `next_question.question_text` como burbuja de chat
+>
+> **Si encuentras otro lugar en el frontend que construya mensajes del AI con datos que no vengan directamente de `messages[]` o `message`:** detente, no lo implementes, y pregunta antes de tomar la decisión. Este error causó que el candidato viera respuestas truncadas/duplicadas mientras el admin veía las reales.
+
 - **Response shapes differ per endpoint** — do NOT use a single `InterviewSession` type for all calls:
   - `POST /sessions` → `{ session_id, status, message, next_question }` (one message, one question — no array)
-  - `POST /sessions/{id}/message` → `{ session_status, next_question, evaluation_result }`
-  - `GET /sessions/{id}` → `{ status, current_question_index, messages[] }` (full history, no next_question)
-- **Messages are maintained client-side** — the page accumulates its own `messages[]` state; only `getSession` (used for polling) syncs from the backend.
+  - `POST /sessions/{id}/message` → `{ session_status, next_question, evaluation_result }` — **no `message` field** — the AI response is only available via `GET /sessions/{id}`
+  - `GET /sessions/{id}` → `{ status, current_question_index, messages[] }` (full history, single source of truth)
+- **`next_question` is metadata only** — use it for header/progress UI (`dimension_name`, `question_number`). Never render `question_text` as a chat bubble.
+- **After `sendMessage`** — always call `pollSession(sid, true, countBeforeUserMsg)` to sync the real AI response from the DB and animate it. Do not construct the AI reply manually.
 - **Session ID persistence** — after a successful `createSession`, store the ID under `nova_session_id` in localStorage. On a 409 `session_already_exists`, extract `session_id` from `body.detail.session_id`; if absent, fall back to `localStorage["nova_session_id"]`. Clear this key on logout.
 - **`nova_session_id` is NOT in `STORAGE_KEYS`** — it is managed locally within the interview page, not in `src/features/auth/types.ts`.
+
+#### Typing animation (natural response reveal)
+
+New assistant messages are revealed character by character so they feel like the AI is writing in real time.
+
+**`pollSession(sid, animateNew = false, prevMsgCount = 0)`**
+
+| Param | When to pass |
+|---|---|
+| `animateNew = true` | Always from `handleSend` and session-busy retry |
+| `prevMsgCount` | `messages.length` captured in `handleSend` **before** the optimistic user message is added — used to slice out only new assistant messages |
+| default (`animateNew = false`) | Session restore in `initSession` — historical messages must never be animated |
+
+**New state / refs:**
+
+| Name | Type | Role |
+|---|---|---|
+| `typingContent` | `string \| null` | Partial text of the message currently being typed |
+| `typingTimerRef` | `ref<Timeout>` | `setTimeout` handle — cleared on interrupt / unmount |
+| `typingSeqNumRef` | `ref<number \| null>` | `sequence_number` of the message being typed (used as Framer key for seamless swap) |
+
+**`displayMessages`** — derived before return:
+```tsx
+const displayMessages: SessionMessage[] =
+  typingContent !== null && typingSeqNumRef.current !== null
+    ? [...messages, { role: "assistant", content: typingContent, sequence_number: typingSeqNumRef.current }]
+    : messages
+```
+The typing placeholder shares the same `sequence_number` key as the real message. When typing completes, `setTypingContent(null)` + `setMessages(sess.messages)` are batched in one render — React updates the DOM node in place, no exit/enter flash.
+
+**`PageStatus` includes `"typing"`** — `isProcessing` covers `"sending" | "busy" | "typing"` so the input stays locked throughout. TypingDots (`●●●`) only show during `"sending"` and `"busy"` (waiting for HTTP); once the response arrives, typing state takes over and the text starts appearing.
+
+**Sequential messages** — when `GET /sessions/{id}` returns 2 new assistant messages (e.g., acknowledgment + next question), `animateMsgs(idx)` types each one in sequence:
+- `TICK_MS = 35ms`, `CHARS_PER_TICK = ⌈len/70⌉` → always ~2.5 s per message regardless of length
+- 320 ms pause between messages before starting the next one
+- Each completed message is committed via `setMessages(prev => [...prev, msg])` before the next starts
+
+**Never** add a typing animation for session restore, browsing history, or the `ResultScreen` farewell — only live sent messages.
+
+#### Response chime (audio notification)
+
+A soft two-note chime plays once when the bot finishes typing all messages in a turn. Implemented as a module-level `playChime()` function using the **Web Audio API** — zero dependencies, no audio files.
+
+```typescript
+function playChime() {
+  try {
+    const ctx = new AudioContext()
+    const now = ctx.currentTime
+    let done = 0
+    ;[523.25, 783.99].forEach((freq, i) => {  // C5, G5 — perfect fifth
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.frequency.value = freq
+      osc.type = "sine"
+      const t = now + i * 0.09
+      gain.gain.setValueAtTime(0.07, t)
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45)
+      osc.start(t)
+      osc.stop(t + 0.45)
+      osc.onended = () => { if (++done === 2) void ctx.close() }
+    })
+  } catch { /* audio not supported — silent fail */ }
+}
+```
+
+**Trigger point:** called in `animateMsgs()` when `msgIdx >= newAssistantMsgs.length` — i.e., after ALL messages in the batch finish typing, right before `setPageStatus("ready")`. Plays once per turn regardless of how many sequential messages the bot sends.
+
+**Why it works:** The user interaction (pressing Send) unlocks the browser's `AudioContext` autoplay policy before the chime fires. No `AudioContext` is created at component mount — only on demand per chime.
+
+**Never call `playChime()`** during session restore (`initSession`), history browsing, or the farewell message at `pageStatus === "completed"` — only for live sent messages.
+
+#### Result state (candidate view)
+
+**Never show scores, rankings, or D1–D8 dimension data to candidates.** When `pageStatus === "completed"`, the chat UI stays visible (sidebar, header, progress bar, all messages) — the farewell appears **inline at the bottom of the conversation**, not as a full-screen replacement.
+
+**No `ResultScreen` component** — the farewell is rendered directly in the chat view after the `AnimatePresence` message list:
+
+```tsx
+{pageStatus === "completed" && (
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ type: "tween" as const, duration: 0.38, ease: "easeOut" as const }}
+  >
+    {/* Divider */}
+    <div className="my-4 flex items-center gap-3">
+      <div className="h-px flex-1 bg-[var(--ds-border)]" />
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--ds-gray-500)]">
+        Entrevista finalizada
+      </span>
+      <div className="h-px flex-1 bg-[var(--ds-border)]" />
+    </div>
+    {/* Farewell as a native assistant message bubble */}
+    <Message from="assistant">
+      <MessageContent>
+        <Response>{`¡Excelente, ${candidateDisplayName}! ...tres días... 🚀`}</Response>
+        <div className="mt-3 flex items-center gap-1.5 border-t border-white/[0.08] pt-3">
+          <BotAvatar state={null} className="size-5" />
+          <span>Cordialmente, <span>Agente NovaHiring</span></span>
+        </div>
+      </MessageContent>
+      <BotAvatar state={null} className="size-8 shrink-0" />
+    </Message>
+  </motion.div>
+)}
+```
+
+- The input area is hidden (`{pageStatus === "completed" ? null : <div ...>}`) — chat history and sidebar remain visible.
+- `candidateDisplayName` is a `useState` lazy-init at the top of `InterviewPage`: reads `nova_candidate_username` from localStorage, takes the first `.`-segment, strips trailing digits, capitalizes. Falls back to `"candidato/a"`. Computed once on mount.
+- **`handleSend` when completed**: calls `await pollSession(sid)` (no animation) to fetch the final messages from `GET /sessions/{id}` before setting `pageStatus = "completed"`. Never skip this call — without it the last AI message is missing from the history.
+- `EvaluationResult` type and `evaluationResult` state are **removed** — the evaluation data is not consumed in the candidate view.
+- The browsing history view (past completed sessions) uses the same pattern — `sessionCompleted` boolean flag, same divider + bubble, **no result card**.
+- Same rule applies: **never** add scores or dimension breakdown back to the candidate-facing view.
+
+### Winner selection & process audit (`src/app/jobs/[job_id]/audit/`)
+
+Full spec in `docs/specs-winner-selection-audit.md`. Implementation summary:
+
+#### New API endpoints (all use `adminFetch` — `X-API-Key`)
+
+| Function | Endpoint | File |
+|---|---|---|
+| `getJobAudit(jobId)` | `GET /jobs/{id}/audit` | `src/features/jobs/services/jobsApi.ts` |
+| `closeJob(jobId)` | `POST /jobs/{id}/close` | `src/features/jobs/services/jobsApi.ts` |
+| `getAdminSession(sessionId)` | `GET /interviews/sessions/{id}` | `src/features/interviews/services/interviewsApi.ts` |
+
+`closeJob` handles 409 `already_closed` — always parse `body.detail` first per the FastAPI error format rule.
+
+#### New types (`src/features/interviews/types.ts`)
+
+- `JobAuditCandidate` — per-candidate row in the audit response
+- `JobAuditResponse` — full `GET /audit` response (status, deadline, candidates[])
+- `CloseJobResponse` — `POST /close` response (winner_nombre, winner_score, sessions_expired)
+- `AdminSessionDetail` — full session transcript with `messages[]` + `evaluation_result`
+
+#### Audit page patterns
+
+- **"Cerrar proceso de selección" button** — enabled only when `ready_to_close && status !== "closed"`. Uses two-step inline confirmation (no dialog): first click shows `¿Confirmar? / Sí, cerrar / Cancelar` inline. Button is solid `bg-[var(--ds-accent-red)]` when enabled, gray when disabled.
+- **Winner row** — green 3px left border via inline `style={{ borderLeft: "3px solid var(--ds-accent-green)" }}` on the first `td` (table-safe — do NOT use absolute-positioned div inside `tr`).
+- **Interview status badges** — `completed`→green, `active`→amber+pulse, `pending`→gray, `abandoned`/`expired`→red.
+- **Chat transcript** — opens in a `Sheet side="right"` without navigation. Loads `getAdminSession()` on open. Shows message bubbles + D1–D8 evaluation grid if `status === "completed"`.
+- **Descartados section** — collapsible (`ChevronDown/Up`), `opacity-50` muted rows, `AnimatePresence` for expand/collapse animation.
+
+#### Audit page — performance patterns
+
+**Why the page felt slow — concurrent request overload:**
+
+On every mount, the page (plus layout + sidebar) fires 5–6 simultaneous API calls to the same backend host. With HTTP/1.1 these queue; with HTTP/2 they still compete for server time. The fix is to sequence non-critical requests AFTER the primary gate resolves.
+
+**`load()` — audit-first, conditionally fire the rest:**
+
+Only `getJobAudit` fires immediately. After it resolves, secondary calls fire based on the job's status:
+
+```tsx
+const load = useCallback(async () => {
+  setAuditLoading(true)
+  setMetricsLoading(true)
+
+  try {
+    const auditData = await getJobAudit(params.job_id)
+    setAudit(auditData)
+    setAuditLoading(false)
+
+    if (auditData.status === "closed") {
+      // closed: sessions are terminal — metrics & pre-close health are useless
+      setMetricsLoading(false)
+    } else {
+      // active: fire metrics + email health concurrently AFTER audit renders page
+      void getJobMetrics(params.job_id)
+        .then(/* build map, setMetricsMap */)
+        .catch(() => {})
+        .finally(() => { setMetricsLoading(false) })
+      void getEmailHealth().then(setEmailHealth).catch(() => {})
+    }
+  } catch { setError("..."); setAuditLoading(false); setMetricsLoading(false) }
+}, [params.job_id])
+```
+
+| Job status | API calls on mount (page only) | Notes |
+|---|---|---|
+| **closed** | 1 (audit) | metrics + health skipped; notifications delayed 1.5s |
+| **active** | 1 immediately + 2 after audit resolves | metrics + health fire after page renders |
+
+- Notifications polling for closed jobs is delayed 1.5s so the page settles first.
+- `getEmailHealth` is removed from the always-on mount effect — only called for active jobs.
+- Refresh button: `disabled={auditLoading}` + `animate-spin` on `auditLoading`.
+- `await load()` in `handleClose` still works — resolves when audit reloads.
+
+**`ProgressCell` shimmer during metrics load:**
+
+Pass `metricsLoading` through `CandidateRow` → `ProgressCell`. When `loading && data === undefined`, show 8 animated dots instead of `—`:
+
+```tsx
+function ProgressCell({ data, status, loading = false }) {
+  if (loading && data === undefined) {
+    return (
+      <div className="flex gap-0.5">
+        {Array.from({ length: 8 }, (_, i) => (
+          <div key={i} className="h-1.5 w-3 animate-pulse rounded-full bg-[var(--ds-background-300)]" />
+        ))}
+      </div>
+    )
+  }
+  // ... normal render
+}
+```
+
+**`React.memo` + stable `useCallback` on `CandidateRow`:**
+
+`CandidateRow` is wrapped in `memo()`. Its `onViewChat` handler is `useCallback`-memoized and passed directly (not as an inline arrow) so memo's shallow-equal check actually works. This prevents the entire table from re-rendering on every polling tick or state change unrelated to candidates.
+
+**Session caching — avoid re-fetching open chats:**
+
+```tsx
+const sessionCacheRef = useRef<Map<string, AdminSessionDetail>>(new Map())
+
+async function openChat(candidate: JobAuditCandidate) {
+  const cached = sessionCacheRef.current.get(candidate.session_id)
+  if (cached !== undefined) {
+    setSessionDetail(cached)   // instant — no API call
+    setSessionLoading(false)
+    return
+  }
+  // ... fetch, then: sessionCacheRef.current.set(id, detail)
+}
+```
+
+The cache lives for the component lifetime. Re-opening the same session chat is instant. Cache resets automatically on full page reload or navigation away.
+
+**Chat sheet skeleton — conversation-shaped placeholders:**
+
+During `sessionLoading`, show 4 alternating left/right message-shaped skeletons instead of a bare spinner. This occupies the expected space and sets the right expectation:
+
+```tsx
+{loading && (
+  <div className="flex flex-col gap-3 pt-2">
+    {[{ w: "w-48", h: "h-14", right: false }, ...].map((s, i) => (
+      <div key={i} className={cn("flex max-w-[80%] flex-col gap-1.5", s.right ? "ml-auto items-end" : "items-start")}>
+        <div className={cn("animate-pulse rounded-2xl bg-[var(--ds-background-300)]", s.w, s.h)} />
+        <div className="h-2 w-10 animate-pulse rounded bg-[var(--ds-background-300)]" />
+      </div>
+    ))}
+  </div>
+)}
+```
+
+**Page skeleton — mirrors final layout:**
+
+The `auditLoading` skeleton matches the actual structure: header card shape + table with header row + 3 rows of dot-shimmer progress cells. Prevents layout shift when data arrives.
+
+### Ranking page patterns (`src/app/jobs/[job_id]/ranking/page.tsx`)
+
+The ranking page is a metrics dashboard — not a plain list. Layout (top to bottom):
+
+1. **Page header** — `BarChart2` icon + title + subtitle + Actualizar button.
+2. **Metric chips row** — 3-column grid: "Candidatos totales" (gray), "Recomendados" (green), "Score medio aptos" (blue). Each chip: `rounded-xl border border-white/[0.14]` + tinted background matching the accent.
+3. **Winner Hero card** — only rendered when `aptos.length > 0`. Contains: `Trophy` icon in green tinted box, candidate name (`text-2xl font-bold`), "Recomendado" badge, and a **score ticker** (`font-mono text-4xl font-black text-[var(--ds-accent-green)]`). Top accent: 2px green gradient line.
+4. **Score distribution chart** — `AreaChart` (recharts) with `ChartContainer`. Data: all candidates sorted by score descending — each point `{ rank: "#N", name, score, resultado }`. Gradient fill (green → transparent). Dots are green (APTO) or red (DESCARTADO). `ReferenceLine` at cutoff score when mixed results. Tooltip uses `ChartTooltipContent` with a custom `formatter` that casts `item.payload as unknown as ChartPoint` to show the candidate name.
+5. **Full ranking table** — aptos section with score bars + "Recomendado" badge on #1; descartados section with `opacity-50` rows.
+
+Entire page wrapped in `motion.div variants={containerVariants}` with `staggerChildren: 0.07` for sequential card reveals.
+
+#### Chart component usage (`src/components/ui/chart.tsx`)
+
+```tsx
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart"
+
+const chartConfig = {
+  score: { label: "Puntuación", color: "var(--ds-accent-green)" },
+} satisfies ChartConfig
+
+<ChartContainer config={chartConfig} className="h-52 w-full">
+  <AreaChart data={chartData} margin={{ top: 16, right: 8, left: -20, bottom: 0 }}>
+    {/* ... recharts components ... */}
+    <ChartTooltip content={<ChartTooltipContent formatter={...} hideLabel />} />
+  </AreaChart>
+</ChartContainer>
+```
+
+- `ChartContainer` wraps `ResponsiveContainer` and injects `--color-<key>` CSS vars from the config.
+- `ChartConfig` type: `{ [key]: { label?, icon?, color? } }` — always `satisfies ChartConfig`.
+- Custom `formatter` in `ChartTooltipContent` receives `(value, name, item, index)` — cast `item.payload as unknown as YourType` for strict-mode safety.
+- Colors in chart components: reference `"var(--ds-accent-green)"` directly (not `var(--color-score)`) for dots/stroke to keep DS tokens as the single source of truth.
+- Do **not** import `ChartLegend` or `ChartLegendContent` — they are not exported from `chart.tsx` (not needed yet).
 
 ### Interview UI component patterns (`src/components/ui/`)
 
@@ -304,44 +757,82 @@ The interview chat view uses ElevenLabs conversation components installed via `p
     <Response>{msg.content}</Response>       {/* streamdown — renders markdown/streaming text */}
   </MessageContent>
   {msg.role === "assistant" && (
-    <div className="size-8 shrink-0 overflow-hidden rounded-full ring-1 ring-white/[0.14]">
-      <Orb colors={ORB_COLORS} agentState={isProcessing ? "thinking" : null} className="h-full w-full" />
-    </div>
+    <BotAvatar state={isProcessing ? "thinking" : null} className="size-8 shrink-0" />
   )}
 </Message>
 ```
 
-- `Message from="assistant"` uses `flex-row-reverse` — DOM order is `[MessageContent][Orb]`, visually renders `[Orb][MessageContent]`.
-- `MessageContent` variant `"contained"` maps `user → bg-primary`, `assistant → bg-secondary` via shadcn token bridge.
+- `Message from="assistant"` uses `flex-row-reverse` — DOM order is `[MessageContent][BotAvatar]`, visually renders `[BotAvatar][MessageContent]`.
+- `MessageContent` variant `"contained"`: user → `bg-[var(--ds-background-200)] text-[var(--ds-gray-1000)]` + adaptive shadow (light: `shadow-[0_1px_4px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.06)]`, dark: `dark:shadow-[0_1px_4px_rgba(0,0,0,0.3),0_4px_16px_rgba(0,0,0,0.22)]`) + `ring-1 ring-[var(--ds-border)]`; assistant → `bg-[var(--ds-background-300)] text-[var(--ds-gray-1000)]`. **No blue background on user bubbles** — never use `bg-[var(--ds-accent-blue)]` for chat bubbles. **Never use `bg-primary` / `bg-secondary`** — those shadcn tokens are not mapped in `tailwind.config.ts` and produce no CSS.
 - `Response` uses `streamdown` — handles both streamed tokens and completed text.
 
-#### Orb component (`src/components/ui/orb.tsx`)
+#### BotAvatar component (inline in `src/app/interview/page.tsx`)
 
-CSS + Framer Motion animated orb — **no Three.js dependency** (see Three.js note below).
+Lightweight inline component — instant load, no dynamic import, no Three.js. Uses `Avatar` + `AvatarBadge` from `@/components/ui/avatar` to keep the status dot (burbujita).
 
 ```tsx
-<Orb
-  colors={["#4f93f8", "#2563eb"]}   // optional, defaults to brand blue
-  agentState={null}                  // null | "thinking" | "listening" | "talking"
-  className="size-8"                 // controls rendered size
-/>
+function BotAvatar({
+  state = null,
+  className = "size-8",
+}: {
+  state?: null | "thinking"
+  className?: string
+}) {
+  return (
+    <Avatar className={cn("rounded-xl after:rounded-xl", className)}>
+      <AvatarFallback className="rounded-xl bg-[var(--ds-background-300)]">
+        <Bot className="size-[55%] text-[var(--ds-accent-blue)]" strokeWidth={1.75} />
+      </AvatarFallback>
+      {state === null ? (
+        <AvatarBadge className="bg-[var(--ds-accent-green)]" />
+      ) : (
+        <AvatarBadge className="animate-pulse bg-[var(--ds-accent-amber)]" />
+      )}
+    </Avatar>
+  )
+}
 ```
 
-| `agentState` | Animation |
+| `state` | Visual |
 |---|---|
-| `null` (idle) | Slow 3.5s gentle pulse |
-| `"thinking"` | Medium 1.7s breath — loading state |
-| `"listening"` | Faster 1.1s beat |
-| `"talking"` | Quick 0.65s multi-keyframe throb |
+| `null` (idle) | Bot icon + green badge |
+| `"thinking"` | Bot icon + pulsing amber badge |
 
-- Always import `Orb` with `next/dynamic` + `ssr: false` when used in interview page (Framer Motion canvas-less but still client-only):
+- Uses `Bot` icon from lucide-react — **never** render "AI" text fallback.
+- `AvatarBadge` is the status dot — always keep it, both states must render one.
+- Sidebar session items use the same `Bot` icon inside `AvatarFallback` with `rounded-lg`.
+- `orb.tsx` still exists in `src/components/ui/` but is **no longer used** in `/interview`. Do not re-introduce it there.
 
+#### Chat message animation patterns
+
+Live chat (`interview/page.tsx`) and transcript viewer (`audit/page.tsx`) follow the same animation rules to feel natural — like Claude or ChatGPT, not robotic.
+
+**`AnimatePresence` — no `mode="popLayout"`:**
+- Use `<AnimatePresence initial={false}>` (no mode) for the message list.
+- `mode="popLayout"` takes exiting elements out of the DOM flow instantly, causing layout reflows and visible jumps when TypingDots disappear. Never use it for chat lists.
+
+**Message enter animation — no `scale`:**
 ```tsx
-const Orb = dynamic(
-  () => import("@/components/ui/orb").then((m) => ({ default: m.Orb })),
-  { ssr: false }
-)
+initial={{ opacity: 0, y: 14 }}
+animate={{ opacity: 1, y: 0 }}
+exit={{ opacity: 0, transition: { duration: 0.15, type: "tween" as const } }}
+transition={{ type: "tween" as const, duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
 ```
+- `ease: [0.22, 1, 0.36, 1]` — expo-out cubic: starts fast, decelerates smoothly. Gives the natural "message arrives" feel.
+- **No `scale`** — scale animations interact with `StickToBottom`'s scroll tracking and create visual jumps. Use only `opacity` + `y`.
+- Exit is just `opacity: 0` at 150ms — fast fade so content swaps cleanly without positional fighting.
+
+**Audit `ChatSheet` transcript — staggered entrance:**
+```tsx
+initial={{ opacity: 0, y: 6, x: msg.role === "user" ? 10 : -10, scale: 0.97 }}
+animate={{ opacity: 1, y: 0, x: 0, scale: 1 }}
+transition={{ type: "tween" as const, duration: 0.26, ease: "easeOut" as const, delay: i * 0.055 }}
+```
+- History loads all at once → stagger 55ms per message so it reads like a conversation replaying.
+- Directional slide: user messages from right (`x: 10`), assistant from left (`x: -10`).
+- Label ("Candidato" / "Nova AI") fades in 180ms after its bubble: `delay: i * 0.055 + 0.18`.
+- Evaluation card enters after all messages: `delay: messages.length * 0.055 + 0.1`.
+- Scale is acceptable here because this is a static history (no live scroll tracking).
 
 #### ⚠️ @react-three/fiber — versión fijada en v8
 
@@ -396,7 +887,7 @@ const Orb = dynamic(
 
 | `jobId` | Sidebar content |
 |---|---|
-| `string` (inside a job workspace) | Full job list — active job expanded with sub-nav (Candidatos / Top candidatos / Informe IA / Criterios / Auditoría CVs) |
+| `string` (inside a job workspace) | Full job list — active job expanded with sub-nav (Candidatos / Top candidatos / Informe IA / Criterios / Auditoría CVs / Proceso) |
 | `undefined` (on `/dashboard`) | "Resumen" section — 6 `SidebarMenuButton` items with colored badges: Vacantes, En proceso, Finalizadas, Clientes (unique `tenant_id`s), Candidatos (placeholder), Por cerrar (placeholder) |
 
 - Dashboard items use `motion.div` with `initial={{ opacity:0, x:-6 }}` staggered 55ms each.
@@ -508,8 +999,40 @@ The homepage targets **non-technical business owners** (clinic owners, recruiter
 | Fecha | Commit | Descripción |
 |---|---|---|
 | 2026-05-22 21:30 -05 | `2bd649f` | feat: upgrade interview chatbot con ElevenLabs — orb CSS, conversation layout, TypeScript fixes. **Punto de retorno seguro antes del experimento con @react-three/fiber v8.** |
+| 2026-05-24 | `d9604d6` | feat: audit page + winner selection — `/jobs/{id}/audit`, `closeJob`, `getAdminSession`, sidebar "Proceso" item, new types en `interviews/types.ts` |
+| 2026-05-25 | pendiente | perf: audit page progressive loading — `auditLoading`/`metricsLoading` split, session cache (`useRef<Map>`), ProgressCell shimmer, conversation-shaped sheet skeleton |
+| 2026-05-25 | pendiente | perf: module-level TTL cache (`src/lib/cache.ts`) — `getCached(key, fetcher, opts)`, all read APIs cached 30–300 s, `force=true` bypass on Actualizar buttons + post-mutation reloads |
+| 2026-05-25 | pendiente | feat: NavigationProgress — thin 2px blue top bar, fires on internal link click, completes on pathname change, zero external deps |
+| 2026-05-24 | pendiente | refactor: replace Orb with BotAvatar (Bot icon + AvatarBadge), hide scores from candidate result view, farewell as chat bubble, store candidateUsername |
+| 2026-05-24 | pendiente | feat: ranking page redesign — recharts AreaChart, winner hero card, metric chips, score distribution chart; adds `chart.tsx` + `--chart-*` tokens |
+| 2026-05-24 | pendiente | refactor: user chat bubbles — neutral surface + adaptive shadow (no blue bg); natural message animations (expo-out, no scale, no popLayout) |
+| 2026-05-24 | pendiente | feat: typing animation — sequential char-by-char reveal for new assistant messages; `"typing"` PageStatus, `pollSession(sid, animateNew, prevMsgCount)`, ~2.5 s/msg at 35ms tick, 320 ms pause between messages |
+| 2026-05-25 | pendiente | feat: response chime — Web Audio API two-note chime (C5+G5) on bot turn end; `playChime()` module-level fn, zero deps, fires once per turn in `animateMsgs` terminal case |
 
 > Si algo se rompe después de este punto, revertir con: `git revert HEAD` o `git reset --hard 2bd649f`
+
+## Refactor pendiente — `src/app/interview/page.tsx`
+
+El archivo tiene **1158 líneas**. Se ha analizado y acordado extraer los componentes puros sin riesgo. **No tocar `pollSession` ni `initSession` — esos callbacks se quedan en el page.**
+
+### Qué extraer (seguro, riesgo cero):
+
+| Componente | Destino | Por qué es seguro |
+|---|---|---|
+| `BotAvatar` (L93–112) | `src/features/interviews/components/BotAvatar.tsx` | Solo props, sin estado compartido. También lo usa `SessionsSidebar`. |
+| `TypingDots` (L71–91) | `src/features/interviews/components/TypingDots.tsx` | Componente puro, sin deps. |
+| `CenteredScreen` + `LoadingScreen` + `ErrorScreen` (L302–360) | `src/features/interviews/components/InterviewScreens.tsx` | Solo props, solo llaman a `BotAvatar`. |
+| `SessionsSidebar` (L147–298) | `src/features/interviews/components/SessionsSidebar.tsx` | Recibe todo por props — `sessions`, `onSelect`, `onLogout`, `onClose?`. Necesita llevarse `STATUS_CONFIG` y `formatRelativeTime`. |
+
+### Qué NO extraer:
+
+- `pollSession` — `useCallback` que cierra sobre 6+ setState + 3 refs. Se queda en el page.
+- `initSession` — mismo motivo.
+- La vista de browsing y el chat view — usan 10+ variables del componente padre directamente.
+
+### Resultado esperado:
+
+`interview/page.tsx`: **1158 → ~680 líneas** sin cambiar ningún comportamiento.
 
 ## CI/CD
 

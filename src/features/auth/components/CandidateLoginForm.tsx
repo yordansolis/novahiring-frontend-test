@@ -11,6 +11,7 @@ import { PasswordInput } from "@/components/ui/password-input"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { FocusField } from "@/components/ui/focus-field"
 import { hasCandidateToken } from "@/lib/api"
+import { startProgress } from "@/components/providers/NavigationProgress"
 import { loginCandidate } from "@/features/auth/services/authApi"
 import { STORAGE_KEYS } from "@/features/auth/types"
 import type { AuthError } from "@/features/auth/types"
@@ -35,6 +36,8 @@ export function CandidateLoginForm() {
       localStorage.setItem(STORAGE_KEYS.candidateToken, data.token)
       localStorage.setItem(STORAGE_KEYS.candidateId, data.candidate_id)
       localStorage.setItem(STORAGE_KEYS.candidateJobId, data.job_id)
+      localStorage.setItem(STORAGE_KEYS.candidateUsername, username)
+      startProgress()
       router.push("/interview")
     } catch (err) {
       const authErr = err as AuthError

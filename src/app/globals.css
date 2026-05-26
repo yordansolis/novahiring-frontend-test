@@ -4,9 +4,82 @@
 
 @layer base {
   :root {
+    color-scheme: light;
+
+    /* Light mode backgrounds */
+    --ds-background-100: #ffffff;
+    --ds-background-200: #f8f8f9;
+    --ds-background-300: #f0f0f2;
+
+    /* Light mode gray scale */
+    --ds-gray-100: #f4f4f5;
+    --ds-gray-200: #e4e4e7;
+    --ds-gray-300: #d4d4d8;
+    --ds-gray-400: #a1a1aa;
+    --ds-gray-500: #71717a;
+    --ds-gray-600: #52525b;
+    --ds-gray-700: #3f3f46;
+    --ds-gray-800: #27272a;
+    --ds-gray-900: #18181b;
+    --ds-gray-1000: #09090b;
+
+    /* Accents — slightly deeper for contrast on white */
+    --ds-accent-blue: #2563eb;
+    --ds-accent-green: #16a34a;
+    --ds-accent-red: #dc2626;
+    --ds-accent-amber: #d97706;
+
+    /* Light mode borders */
+    --ds-border: rgba(0, 0, 0, 0.08);
+    --ds-border-subtle: rgba(0, 0, 0, 0.04);
+
+    /* shadcn/ui component token bridge — light */
+    --background: #ffffff;
+    --foreground: #09090b;
+    --card: #f8f8f9;
+    --card-foreground: #09090b;
+    --primary: #2563eb;
+    --primary-foreground: #ffffff;
+    --secondary: #f0f0f2;
+    --secondary-foreground: #09090b;
+    --muted: #f0f0f2;
+    --muted-foreground: #71717a;
+    --accent: #e4e4e7;
+    --accent-foreground: #09090b;
+    --destructive: #dc2626;
+    --destructive-foreground: #ffffff;
+    --border: rgba(0, 0, 0, 0.08);
+    --input: #d4d4d8;
+    --ring: #2563eb;
+    --radius-md: 8px;
+
+    /* Sidebar tokens — light */
+    --sidebar: #f8f8f9;
+    --sidebar-foreground: #09090b;
+    --sidebar-primary: #2563eb;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #f0f0f2;
+    --sidebar-accent-foreground: #09090b;
+    --sidebar-border: rgba(0, 0, 0, 0.08);
+    --sidebar-ring: #2563eb;
+
+    /* Chart tokens — light */
+    --chart-1: #2563eb;
+    --chart-2: #16a34a;
+    --chart-3: #d97706;
+    --chart-4: #9333ea;
+    --chart-5: #dc2626;
+  }
+
+  .dark {
+    color-scheme: dark;
+
+    /* Dark mode backgrounds */
     --ds-background-100: #0a0a0b;
     --ds-background-200: #111113;
     --ds-background-300: #18181b;
+
+    /* Dark mode gray scale */
     --ds-gray-100: #1a1a1f;
     --ds-gray-200: #26262c;
     --ds-gray-300: #3a3a42;
@@ -17,14 +90,18 @@
     --ds-gray-800: #e4e4e7;
     --ds-gray-900: #f4f4f5;
     --ds-gray-1000: #fafafa;
+
+    /* Accents */
     --ds-accent-blue: #3b82f6;
     --ds-accent-green: #22c55e;
     --ds-accent-red: #ef4444;
     --ds-accent-amber: #f59e0b;
+
+    /* Dark mode borders */
     --ds-border: rgba(255, 255, 255, 0.08);
     --ds-border-subtle: rgba(255, 255, 255, 0.04);
 
-    /* shadcn/ui component token bridge — mapped to ds-* tokens */
+    /* shadcn/ui component token bridge — dark */
     --background: #0a0a0b;
     --foreground: #fafafa;
     --card: #111113;
@@ -42,9 +119,8 @@
     --border: rgba(255, 255, 255, 0.08);
     --input: #3a3a42;
     --ring: #3b82f6;
-    --radius-md: 8px;
 
-    /* Sidebar tokens */
+    /* Sidebar tokens — dark */
     --sidebar: #111113;
     --sidebar-foreground: #fafafa;
     --sidebar-primary: #3b82f6;
@@ -53,11 +129,17 @@
     --sidebar-accent-foreground: #fafafa;
     --sidebar-border: rgba(255, 255, 255, 0.08);
     --sidebar-ring: #3b82f6;
+
+    /* Chart tokens — dark */
+    --chart-1: #3b82f6;
+    --chart-2: #22c55e;
+    --chart-3: #f59e0b;
+    --chart-4: #a855f7;
+    --chart-5: #ef4444;
   }
 }
 
 html {
-  color-scheme: dark;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -84,7 +166,16 @@ html {
   transition: background 0.3s ease, color 0.25s ease, box-shadow 0.3s ease;
 }
 
+/* Light mode hover: deepen the blue */
 .btn-glow:hover {
+  background: linear-gradient(160deg, #3b7ef4 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  animation-play-state: paused;
+  box-shadow: 0 2px 16px rgba(37, 99, 235, 0.4) !important;
+}
+
+/* Dark mode hover: light inversion (original behavior) */
+.dark .btn-glow:hover {
   background: #f1f5f9 !important;
   color: #0a0a0b !important;
   animation-play-state: paused;
