@@ -1,8 +1,10 @@
-import { candidateFetch } from "@/lib/api"
+import { candidateFetch, adminFetch } from "@/lib/api"
 import type {
   CreateSessionResponse,
   SendMessageResponse,
   GetSessionResponse,
+  ListSessionsResponse,
+  AdminSessionDetail,
 } from "../types"
 
 async function handleOk<T>(res: Response): Promise<T> {
@@ -57,6 +59,16 @@ export async function getSession(sessionId: string): Promise<GetSessionResponse>
   return handleOk<GetSessionResponse>(res)
 }
 
+export async function listSessions(): Promise<ListSessionsResponse> {
+  const res = await candidateFetch("/interviews/sessions")
+  return handleOk<ListSessionsResponse>(res)
+}
+
 export async function interruptSession(sessionId: string): Promise<void> {
   await candidateFetch(`/interviews/sessions/${sessionId}/interrupt`, { method: "POST" })
+}
+
+export async function getAdminSession(sessionId: string): Promise<AdminSessionDetail> {
+  const res = await adminFetch(`/interviews/sessions/${sessionId}`)
+  return handleOk<AdminSessionDetail>(res)
 }

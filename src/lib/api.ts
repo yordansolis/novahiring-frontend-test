@@ -12,6 +12,8 @@ export function logoutCandidate(): void {
   localStorage.removeItem(STORAGE_KEYS.candidateToken)
   localStorage.removeItem(STORAGE_KEYS.candidateId)
   localStorage.removeItem(STORAGE_KEYS.candidateJobId)
+  localStorage.removeItem(STORAGE_KEYS.candidateUsername)
+  localStorage.removeItem("nova_session_id")
   window.location.href = "/login/candidate"
 }
 

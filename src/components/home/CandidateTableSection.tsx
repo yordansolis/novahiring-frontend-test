@@ -114,7 +114,7 @@ export function CandidateTableSection() {
                     duration: 0.4,
                     delay: 0.25 + i * 0.08,
                   }}
-                  className="border-b border-[var(--ds-border)] last:border-0 hover:bg-white/[0.02] transition-colors duration-150"
+                  className="border-b border-[var(--ds-border)] last:border-0 hover:bg-[var(--ds-background-300)] transition-colors duration-150"
                 >
                   <td className="px-6 py-4 font-mono text-xs text-[var(--ds-gray-500)]">
                     {candidate.rank}

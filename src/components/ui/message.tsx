@@ -24,18 +24,26 @@ export const Message = ({ className, from, ...props }: MessageProps) => (
 )
 
 const messageContentVariants = cva(
-  "is-user:dark flex flex-col gap-2 overflow-hidden rounded-lg text-sm",
+  "flex flex-col gap-2 overflow-hidden rounded-xl text-sm",
   {
     variants: {
       variant: {
         contained: [
           "max-w-[80%] px-4 py-3",
-          "group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground",
-          "group-[.is-assistant]:bg-secondary group-[.is-assistant]:text-foreground",
+          // User: neutral surface + shadow that adapts to light/dark
+          "group-[.is-user]:bg-[var(--ds-background-200)] group-[.is-user]:text-[var(--ds-gray-1000)]",
+          "group-[.is-user]:shadow-[0_1px_4px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.06)]",
+          "dark:group-[.is-user]:shadow-[0_1px_4px_rgba(0,0,0,0.3),0_4px_16px_rgba(0,0,0,0.22)]",
+          "group-[.is-user]:ring-1 group-[.is-user]:ring-[var(--ds-border)]",
+          // Assistant: elevated surface
+          "group-[.is-assistant]:bg-[var(--ds-background-300)] group-[.is-assistant]:text-[var(--ds-gray-1000)]",
         ],
         flat: [
-          "group-[.is-user]:max-w-[80%] group-[.is-user]:bg-secondary group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-foreground",
-          "group-[.is-assistant]:text-foreground",
+          "group-[.is-user]:max-w-[80%] group-[.is-user]:bg-[var(--ds-background-200)] group-[.is-user]:px-4 group-[.is-user]:py-3 group-[.is-user]:text-[var(--ds-gray-1000)]",
+          "group-[.is-user]:shadow-[0_1px_4px_rgba(0,0,0,0.06),0_4px_16px_rgba(0,0,0,0.06)]",
+          "dark:group-[.is-user]:shadow-[0_1px_4px_rgba(0,0,0,0.3),0_4px_16px_rgba(0,0,0,0.22)]",
+          "group-[.is-user]:ring-1 group-[.is-user]:ring-[var(--ds-border)]",
+          "group-[.is-assistant]:text-[var(--ds-gray-1000)]",
         ],
       },
     },

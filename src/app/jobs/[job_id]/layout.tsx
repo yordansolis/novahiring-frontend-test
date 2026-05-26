@@ -37,6 +37,7 @@ const PAGE_LABELS: Record<string, string> = {
   "/report": "Informe IA",
   "/profile": "Criterios",
   "/cvs": "Auditoría CVs",
+  "/audit": "Proceso de Selección",
 }
 
 export default function JobLayout({ children, params }: Props) {

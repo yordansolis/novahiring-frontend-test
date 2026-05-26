@@ -77,11 +77,11 @@ export default function CandidatesPage({ params }: Props) {
   const [evaluating, setEvaluating] = useState(false)
   const [evalMsg, setEvalMsg] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     setLoading(true)
     setError(null)
     try {
-      const data = await getCandidates(params.job_id)
+      const data = await getCandidates(params.job_id, force)
       setCandidates(data)
     } catch (e) {
       setError(
@@ -104,7 +104,7 @@ export default function CandidatesPage({ params }: Props) {
       setEvalMsg(
         `Análisis iniciado para ${res.queued_candidates} candidato${res.queued_candidates !== 1 ? "s" : ""}.`
       )
-      setTimeout(() => void load(), 4000)
+      setTimeout(() => void load(true), 4000)
     } catch (e) {
       setEvalMsg(
         e instanceof Error ? e.message : "Error al iniciar el análisis"
@@ -161,7 +161,7 @@ export default function CandidatesPage({ params }: Props) {
             </Button>
           )}
           <Button
-            onClick={() => void load()}
+            onClick={() => void load(true)}
             disabled={loading}
             variant="ghost"
             size="sm"
