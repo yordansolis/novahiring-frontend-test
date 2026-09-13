@@ -4,7 +4,14 @@ const BASE =
   process.env.NEXT_PUBLIC_BACKEND ?? "http://localhost:8000/api/v1"
 
 export function logoutAdmin(): void {
-  localStorage.removeItem(STORAGE_KEYS.adminApiKey)
+  const token = localStorage.getItem(STORAGE_KEYS.adminToken)
+  if (token) {
+    void fetch(`${BASE}/auth/logout`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {})
+  }
+  localStorage.removeItem(STORAGE_KEYS.adminToken)
   window.location.href = "/login/admin"
 }
 
@@ -21,12 +28,12 @@ export async function adminFetch(
   path: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  const apiKey = localStorage.getItem(STORAGE_KEYS.adminApiKey) ?? ""
+  const token = localStorage.getItem(STORAGE_KEYS.adminToken) ?? ""
   const res = await fetch(`${BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "X-API-Key": apiKey,
+      Authorization: `Bearer ${token}`,
       ...options.headers,
     },
   })
@@ -63,7 +70,7 @@ export async function publicFetch(
 }
 
 export function hasAdminKey(): boolean {
-  return !!localStorage.getItem(STORAGE_KEYS.adminApiKey)
+  return !!localStorage.getItem(STORAGE_KEYS.adminToken)
 }
 
 export function hasCandidateToken(): boolean {

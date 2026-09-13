@@ -1,4 +1,4 @@
-import { adminFetch } from "@/lib/api"
+import { adminFetch, publicFetch } from "@/lib/api"
 import { getCached } from "@/lib/cache"
 import type {
   JobOffer,
@@ -7,17 +7,37 @@ import type {
   JobListResponse,
   JobListItem,
   CreateJobRequest,
+  JobApplyInfo,
 } from "@/features/jobs/types"
+import { MAX_CANDIDATES_PER_JOB } from "@/features/jobs/types"
 import type {
   JobAuditResponse,
   CloseJobResponse,
   JobMetricsResponse,
   JobNotificationsResponse,
   EmailHealthResponse,
+  SendInvitationsResponse,
 } from "@/features/interviews/types"
 
 async function throwOnError(res: Response): Promise<void> {
   if (!res.ok) {
+    const body = await res.json().catch(() => ({})) as Record<string, unknown>
+    const detail = body["detail"]
+    if (typeof detail === "string") {
+      throw new Error(detail)
+    }
+    if (typeof detail === "object" && detail !== null) {
+      const d = detail as Record<string, unknown>
+      if (typeof d["message"] === "string") {
+        throw new Error(d["message"])
+      }
+      if (typeof d["error"] === "string") {
+        throw new Error(d["error"])
+      }
+    }
+    if (res.status === 405) {
+      throw new Error("El servidor no permite crear vacantes todavía.")
+    }
     throw new Error(`Error ${res.status}`)
   }
 }
@@ -70,13 +90,57 @@ export function getJobReport(jobId: string, force = false): Promise<string> {
   )
 }
 
+async function jobsFromActiveOffer(): Promise<JobListResponse> {
+  const jobId = process.env.NEXT_PUBLIC_JOB_ID
+  if (!jobId) {
+    throw new Error("Error 404")
+  }
+  const res = await adminFetch(`/jobs/${jobId}/offer`)
+  await throwOnError(res)
+  const offer = await res.json() as JobOffer
+  return {
+    jobs: [
+      {
+        job_id: offer.job_id,
+        title: offer.title,
+        niche: "",
+        status: "active",
+        tenant_id: "",
+        candidate_count: 0,
+        max_candidates: MAX_CANDIDATES_PER_JOB,
+      },
+    ],
+    total: 1,
+  }
+}
+
+export async function getJobApplyInfo(jobId: string): Promise<JobApplyInfo> {
+  const res = await publicFetch(`/candidates/${jobId}/apply-info`)
+  await throwOnError(res)
+  return res.json() as Promise<JobApplyInfo>
+}
+
 export function getJobs(force = false): Promise<JobListResponse> {
   return getCached(
     `jobs:list`,
     async () => {
       const res = await adminFetch("/jobs")
+      if (res.ok) {
+        const data = await res.json() as JobListResponse
+        return {
+          ...data,
+          jobs: data.jobs.map((job) => ({
+            ...job,
+            candidate_count: job.candidate_count ?? 0,
+            max_candidates: job.max_candidates ?? MAX_CANDIDATES_PER_JOB,
+          })),
+        }
+      }
+      if (res.status === 404) {
+        return jobsFromActiveOffer()
+      }
       await throwOnError(res)
-      return res.json() as Promise<JobListResponse>
+      throw new Error(`Error ${res.status}`)
     },
     { ttl: 60_000, force }
   )
@@ -128,6 +192,12 @@ export async function getEmailHealth(): Promise<EmailHealthResponse> {
   const res = await adminFetch("/notifications/health/email")
   await throwOnError(res)
   return res.json() as Promise<EmailHealthResponse>
+}
+
+export async function sendInvitations(jobId: string): Promise<SendInvitationsResponse> {
+  const res = await adminFetch(`/notifications/${jobId}/invitations`, { method: "POST" })
+  await throwOnError(res)
+  return res.json() as Promise<SendInvitationsResponse>
 }
 
 export async function closeJob(jobId: string): Promise<CloseJobResponse> {

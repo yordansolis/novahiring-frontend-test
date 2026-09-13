@@ -18,7 +18,7 @@ import {
   Wifi,
   WifiOff,
 } from "lucide-react"
-import { getJobAudit, closeJob, getJobMetrics, getJobNotifications, getEmailHealth } from "@/features/jobs/services/jobsApi"
+import { getJobAudit, closeJob, getJobMetrics, getJobNotifications, getEmailHealth, sendInvitations } from "@/features/jobs/services/jobsApi"
 import { getAdminSession } from "@/features/interviews/services/interviewsApi"
 import type {
   JobAuditResponse,
@@ -92,18 +92,43 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-function NotificationPills({ notifications }: { notifications: string[] }) {
-  if (notifications.length === 0) return <span className="text-xs text-[var(--ds-gray-500)]">—</span>
+function InvitationStatus({ status }: { status: string | null }) {
+  if (status === "sent") {
+    return (
+      <span className="rounded-full bg-[var(--ds-accent-blue)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--ds-accent-blue)]">
+        Enviada
+      </span>
+    )
+  }
+  if (status === "failed") {
+    return (
+      <span className="rounded-full bg-[var(--ds-accent-red)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--ds-accent-red)]">
+        Error al enviar
+      </span>
+    )
+  }
+  if (status === "not_configured" || status === "simulated_sent") {
+    return (
+      <span className="rounded-full bg-[var(--ds-accent-amber)]/10 px-2 py-0.5 text-[10px] font-medium text-[var(--ds-accent-amber)]">
+        No enviada
+      </span>
+    )
+  }
+  return <span className="text-xs text-[var(--ds-gray-500)]">—</span>
+}
+
+function NotificationPills({ candidate }: { candidate: JobAuditCandidate }) {
+  const extras = candidate.notifications_sent.filter((n) => n !== "interview_invitation")
   return (
     <div className="flex flex-wrap gap-1">
-      {notifications.map((n) => (
+      <InvitationStatus status={candidate.invitation_email_status} />
+      {extras.map((n) => (
         <span
           key={n}
           className={cn(
             "rounded-full px-2 py-0.5 text-[10px] font-medium",
             n === "winner"    && "bg-[var(--ds-accent-green)]/10 text-[var(--ds-accent-green)]",
             n === "rejection" && "bg-[var(--ds-accent-red)]/10 text-[var(--ds-accent-red)]",
-            n === "interview_invitation" && "bg-[var(--ds-accent-blue)]/10 text-[var(--ds-accent-blue)]",
           )}
         >
           {NOTIFICATION_LABELS[n] ?? n}
@@ -476,7 +501,7 @@ const CandidateRow = memo(function CandidateRow({
 
       {/* notifications */}
       <td className="py-3 pr-4">
-        <NotificationPills notifications={candidate.notifications_sent} />
+        <NotificationPills candidate={candidate} />
       </td>
 
       {/* actions */}
@@ -599,6 +624,8 @@ export default function AuditPage({ params }: { params: { job_id: string } }) {
   const [notifError, setNotifError] = useState<string | null>(null)
   const [isPolling, setIsPolling] = useState(false)
   const [pollingExhausted, setPollingExhausted] = useState(false)
+  const [sendingInvites, setSendingInvites] = useState(false)
+  const [inviteMsg, setInviteMsg] = useState<string | null>(null)
   const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const load = useCallback(async (force = false) => {
@@ -612,11 +639,20 @@ export default function AuditPage({ params }: { params: { job_id: string } }) {
       setAudit(auditData)
       setAuditLoading(false)
 
+      void getEmailHealth()
+        .then(setEmailHealth)
+        .catch(() => {
+          setEmailHealth({
+            status: "error",
+            host: "smtp",
+            port: 587,
+            error: "No se pudo comprobar el servidor de email.",
+          })
+        })
+
       if (auditData.status === "closed") {
-        // closed: sessions are terminal — metrics & pre-close health check are useless
         setMetricsLoading(false)
       } else {
-        // active: fire metrics + email health concurrently AFTER audit renders the page
         void getJobMetrics(params.job_id, force)
           .then((data) => {
             const map = new Map<string, JobMetricsCandidate>()
@@ -625,10 +661,6 @@ export default function AuditPage({ params }: { params: { job_id: string } }) {
           })
           .catch(() => { /* silently fail */ })
           .finally(() => { setMetricsLoading(false) })
-
-        void getEmailHealth()
-          .then(setEmailHealth)
-          .catch(() => { /* silently fail — banner won't show */ })
       }
     } catch {
       setError("No se pudo cargar la información del proceso.")
@@ -679,12 +711,12 @@ export default function AuditPage({ params }: { params: { job_id: string } }) {
   }, [])
 
   useEffect(() => {
-    if (audit === null || audit.status !== "closed") return
-    // delay 1.5s so the page renders and settles before firing the notifications request
+    if (audit === null) return
+    const delay = audit.status === "closed" ? 1500 : 400
     const t = setTimeout(() => {
       setNotifLoading(true)
       startPolling(params.job_id)
-    }, 1500)
+    }, delay)
     return () => clearTimeout(t)
   }, [audit, startPolling, params.job_id])
 
@@ -733,6 +765,32 @@ export default function AuditPage({ params }: { params: { job_id: string } }) {
       setConfirmClose(false)
     } finally {
       setClosing(false)
+    }
+  }
+
+  async function handleSendInvites() {
+    setSendingInvites(true)
+    setInviteMsg(null)
+    try {
+      const result = await sendInvitations(params.job_id)
+      if (result.error !== null) {
+        setInviteMsg(result.error)
+      } else if (result.attempted === 0) {
+        setInviteMsg("No hay invitaciones pendientes.")
+      } else {
+        setInviteMsg(
+          result.sent > 0
+            ? `Enviadas ${result.sent} invitación${result.sent !== 1 ? "es" : ""}.`
+            : "No se pudo enviar ninguna invitación.",
+        )
+      }
+      await load(true)
+      setNotifLoading(true)
+      startPolling(params.job_id)
+    } catch {
+      setInviteMsg("No se pudieron enviar las invitaciones. Inténtalo de nuevo.")
+    } finally {
+      setSendingInvites(false)
     }
   }
 
@@ -789,6 +847,7 @@ export default function AuditPage({ params }: { params: { job_id: string } }) {
   const aptos = audit.all_candidates.filter((c) => c.passed_ko)
   const descartados = audit.all_candidates.filter((c) => !c.passed_ko)
   const canClose = audit.status !== "closed"
+  const pendingInvites = aptos.filter((c) => c.invitation_email_status !== "sent").length
 
   const deadlineDays =
     audit.interview_deadline !== null ? daysRemaining(audit.interview_deadline) : null
@@ -971,18 +1030,24 @@ export default function AuditPage({ params }: { params: { job_id: string } }) {
             </div>
           )}
 
-          {/* SMTP health warning — proactive alert before the admin clicks close */}
-          {emailHealth !== null && emailHealth.status === "error" && audit.status !== "closed" && (
+          {emailHealth !== null && emailHealth.status === "error" && (
             <div className="mt-3 flex items-start gap-2 rounded-lg border border-[var(--ds-accent-amber)]/30 bg-[var(--ds-accent-amber)]/10 px-3 py-2.5 text-xs text-[var(--ds-accent-amber)]">
               <WifiOff className="mt-0.5 size-3.5 shrink-0" />
               <div className="flex flex-col gap-0.5">
-                <span className="font-semibold">El servidor de email no responde.</span>
+                <span className="font-semibold">Las invitaciones no se están enviando por email.</span>
                 <span className="text-[var(--ds-accent-amber)]/80">
-                  Los emails de notificación pueden no enviarse al cerrar el proceso.
-                  {emailHealth.error !== null ? ` Error: ${emailHealth.error}` : ""}
-                  {" "}Contacta soporte antes de continuar.
+                  {emailHealth.error !== null
+                    ? emailHealth.error
+                    : "Falta configurar SMTP en el backend."}
+                  {" "}Pulsa Enviar invitaciones para generar credenciales y cópialas en Candidatos.
                 </span>
               </div>
+            </div>
+          )}
+          {inviteMsg !== null && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-white/[0.14] bg-[var(--ds-background-300)] px-3 py-2.5 text-xs text-[var(--ds-gray-700)]">
+              <Mail className="mt-0.5 size-3.5 shrink-0" />
+              {inviteMsg}
             </div>
           )}
 
@@ -1114,8 +1179,8 @@ export default function AuditPage({ params }: { params: { job_id: string } }) {
             </AnimatePresence>
           </motion.div>
         )}
-        {/* ── email monitoring section (only when closed) ── */}
-        {audit.status === "closed" && (
+        {/* ── email monitoring ── */}
+        {(
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1152,16 +1217,33 @@ export default function AuditPage({ params }: { params: { job_id: string } }) {
                   </span>
                 )}
               </div>
-              <Button
-                onClick={() => { setNotifLoading(true); startPolling(params.job_id) }}
-                disabled={notifLoading || isPolling}
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Actualizar notificaciones"
-                className="size-8 text-[var(--ds-gray-500)] hover:bg-[var(--ds-background-300)] hover:text-[var(--ds-gray-1000)]"
-              >
-                <RefreshCw className={cn("size-4", (notifLoading || isPolling) && "animate-spin")} />
-              </Button>
+              <div className="flex items-center gap-2">
+                {audit.status === "active" && (
+                  <Button
+                    onClick={() => void handleSendInvites()}
+                    disabled={sendingInvites || pendingInvites === 0}
+                    size="sm"
+                    className="h-8 gap-1.5 rounded-full border-0 bg-[var(--ds-accent-blue)] px-3 text-xs font-semibold text-white hover:bg-[var(--ds-accent-blue)]/80 disabled:cursor-not-allowed disabled:bg-[var(--ds-background-300)] disabled:text-[var(--ds-gray-500)]"
+                  >
+                    <Mail className="size-3.5" />
+                    {sendingInvites
+                      ? "Enviando..."
+                      : pendingInvites > 0
+                        ? `Enviar invitaciones (${pendingInvites})`
+                        : "Invitaciones al día"}
+                  </Button>
+                )}
+                <Button
+                  onClick={() => { setNotifLoading(true); startPolling(params.job_id) }}
+                  disabled={notifLoading || isPolling}
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Actualizar notificaciones"
+                  className="size-8 text-[var(--ds-gray-500)] hover:bg-[var(--ds-background-300)] hover:text-[var(--ds-gray-1000)]"
+                >
+                  <RefreshCw className={cn("size-4", (notifLoading || isPolling) && "animate-spin")} />
+                </Button>
+              </div>
             </div>
 
             {/* loading */}
