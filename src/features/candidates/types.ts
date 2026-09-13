@@ -5,8 +5,8 @@ export interface CandidateListItem {
   passed_ko: boolean | null
   resultado: "APTO" | "DESCARTADO" | null
   weighted_score: string | null
-  login_username: string | null
-  login_password: string | null
+  login_username?: string | null
+  login_password?: string | null
 }
 
 export interface CvAuditItem {

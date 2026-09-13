@@ -15,14 +15,14 @@ import { STORAGE_KEYS } from "@/features/auth/types"
 import type { AuthError } from "@/features/auth/types"
 
 function getErrorMessage(err: AuthError): string {
-  if (err.status === 401) return "Usuario o contraseña incorrectos."
+  if (err.status === 401) return "Email o contraseña incorrectos."
   if (err.status === 503) return "El servidor no está configurado todavía."
   return "Error inesperado. Inténtalo de nuevo."
 }
 
 export function AdminLoginForm() {
   const router = useRouter()
-  const [username, setUsername] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
@@ -36,8 +36,8 @@ export function AdminLoginForm() {
     setErrorMsg(null)
     setLoading(true)
     try {
-      const { api_key } = await loginAdmin({ username, password })
-      localStorage.setItem(STORAGE_KEYS.adminApiKey, api_key)
+      const { access_token } = await loginAdmin({ email, password })
+      localStorage.setItem(STORAGE_KEYS.adminToken, access_token)
       router.push("/dashboard")
     } catch (err) {
       const authErr = err as AuthError
@@ -63,19 +63,20 @@ export function AdminLoginForm() {
           <FocusField>
             <Field>
               <FieldLabel
-                htmlFor="username"
+                htmlFor="email"
                 className="mb-2 text-sm font-medium text-[var(--ds-gray-700)]"
               >
-                Usuario
+                Email
               </FieldLabel>
               <Input
-                id="username"
-                type="text"
-                placeholder="me@example.com"
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="recruiter@clinicasaludvalencia.es"
                 required
                 disabled={loading}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="bg-[var(--ds-background-300)] text-[var(--ds-gray-1000)] placeholder:text-[var(--ds-gray-500)]"
               />
             </Field>
@@ -93,6 +94,8 @@ export function AdminLoginForm() {
                 id="password"
                 placeholder="••••••••"
                 required
+                minLength={8}
+                autoComplete="current-password"
                 disabled={loading}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

@@ -9,22 +9,37 @@ import type {
   CvUploadResponse,
 } from "@/features/auth/types"
 
+function authErrorFromBody(status: number, body: Record<string, unknown>): AuthError {
+  const detail = body["detail"]
+  if (typeof detail === "string") {
+    return { status, detail }
+  }
+  if (typeof detail === "object" && detail !== null) {
+    const d = detail as Record<string, unknown>
+    return {
+      status,
+      ...(typeof d["error"] === "string" ? { error: d["error"] } : {}),
+      ...(typeof d["message"] === "string" ? { detail: d["message"] } : {}),
+    }
+  }
+  return {
+    status,
+    ...(typeof body["error"] === "string" ? { error: body["error"] } : {}),
+    ...(typeof body["message"] === "string" ? { detail: body["message"] } : {}),
+  }
+}
+
 async function throwOnError(res: Response): Promise<void> {
   if (!res.ok) {
     const body = await res.json().catch(() => ({})) as Record<string, unknown>
-    const err: AuthError = {
-      status: res.status,
-      ...(typeof body["error"] === "string" ? { error: body["error"] } : {}),
-      ...(typeof body["detail"] === "string" ? { detail: body["detail"] } : {}),
-    }
-    throw err
+    throw authErrorFromBody(res.status, body)
   }
 }
 
 export async function loginAdmin(
   req: AdminLoginRequest
 ): Promise<AdminLoginResponse> {
-  const res = await publicFetch("/auth/admin/login", {
+  const res = await publicFetch("/auth/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(req),

@@ -1,11 +1,21 @@
 export interface AdminLoginRequest {
-  username: string
+  email: string
   password: string
 }
 
+export interface RecruiterUser {
+  id: string
+  email: string
+  nombre: string
+  rol: string
+  tenant_id: string
+}
+
 export interface AdminLoginResponse {
-  api_key: string
-  token_type: "api-key"
+  access_token: string
+  token_type: "bearer"
+  expires_in: number
+  user: RecruiterUser
 }
 
 export interface CandidateLoginRequest {
@@ -40,7 +50,7 @@ export interface AuthError {
 }
 
 export const STORAGE_KEYS = {
-  adminApiKey: "nova_admin_api_key",
+  adminToken: "nova_admin_token",
   candidateToken: "nova_candidate_token",
   candidateId: "nova_candidate_id",
   candidateJobId: "nova_candidate_job_id",

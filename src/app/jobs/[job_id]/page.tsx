@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Users, Zap, RefreshCw } from "lucide-react"
 import type { CandidateListItem } from "@/features/candidates/types"
@@ -9,11 +9,34 @@ import {
   triggerEvaluation,
 } from "@/features/candidates/services/candidatesApi"
 import { CandidateTable } from "@/features/candidates/components/CandidateTable"
+import { ApplyLinkCopy } from "@/features/jobs/components/ApplyLinkCopy"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 
 interface Props {
   params: { job_id: string }
+}
+
+const POLL_MS = 4000
+const POLL_FAST_MS = 2500
+
+function sameCandidates(a: CandidateListItem[], b: CandidateListItem[]): boolean {
+  if (a.length !== b.length) return false
+  return a.every((c, i) => {
+    const other = b.at(i)
+    return (
+      other !== undefined
+      && c.candidate_id === other.candidate_id
+      && c.resultado === other.resultado
+      && c.weighted_score === other.weighted_score
+      && c.passed_ko === other.passed_ko
+      && c.nombre === other.nombre
+    )
+  })
+}
+
+function pendingCount(list: CandidateListItem[]): number {
+  return list.filter((c) => c.resultado === null && c.passed_ko !== false).length
 }
 
 function StatCard({
@@ -76,19 +99,54 @@ export default function CandidatesPage({ params }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [evaluating, setEvaluating] = useState(false)
   const [evalMsg, setEvalMsg] = useState<string | null>(null)
+  const inflightRef = useRef(false)
+  const evalLockRef = useRef(false)
 
-  const load = useCallback(async (force = false) => {
-    setLoading(true)
-    setError(null)
+  const load = useCallback(async (opts?: { force?: boolean; silent?: boolean }) => {
+    const force = opts?.force === true
+    const silent = opts?.silent === true
+    if (inflightRef.current && silent) return null
+    inflightRef.current = true
+    if (!silent) {
+      setLoading(true)
+      setError(null)
+    }
     try {
       const data = await getCandidates(params.job_id, force)
-      setCandidates(data)
+      setCandidates((prev) => (sameCandidates(prev, data) ? prev : data))
+      return data
     } catch (e) {
-      setError(
-        e instanceof Error ? e.message : "Error al cargar candidatos"
-      )
+      if (!silent) {
+        setError(
+          e instanceof Error ? e.message : "Error al cargar candidatos"
+        )
+      }
+      return null
     } finally {
-      setLoading(false)
+      inflightRef.current = false
+      if (!silent) setLoading(false)
+    }
+  }, [params.job_id])
+
+  const startEvaluation = useCallback(async (queuedHint?: number) => {
+    if (evalLockRef.current) return
+    evalLockRef.current = true
+    setEvaluating(true)
+    setEvalMsg(null)
+    try {
+      const res = await triggerEvaluation(params.job_id)
+      const n = queuedHint ?? res.queued_candidates
+      setEvalMsg(
+        n > 0
+          ? `Analizando ${n} candidato${n !== 1 ? "s" : ""} con IA…`
+          : "Analizando con IA…"
+      )
+    } catch (e) {
+      evalLockRef.current = false
+      setEvaluating(false)
+      setEvalMsg(
+        e instanceof Error ? e.message : "Error al iniciar el análisis"
+      )
     }
   }, [params.job_id])
 
@@ -96,22 +154,49 @@ export default function CandidatesPage({ params }: Props) {
     void load()
   }, [load])
 
-  async function handleEvaluate() {
-    setEvaluating(true)
-    setEvalMsg(null)
-    try {
-      const res = await triggerEvaluation(params.job_id)
-      setEvalMsg(
-        `Análisis iniciado para ${res.queued_candidates} candidato${res.queued_candidates !== 1 ? "s" : ""}.`
-      )
-      setTimeout(() => void load(true), 4000)
-    } catch (e) {
-      setEvalMsg(
-        e instanceof Error ? e.message : "Error al iniciar el análisis"
-      )
-    } finally {
-      setEvaluating(false)
+  useEffect(() => {
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | null = null
+
+    async function tick() {
+      if (cancelled) return
+      if (document.visibilityState !== "hidden") {
+        const data = await load({ force: true, silent: true })
+        if (data !== null) {
+          const pending = pendingCount(data)
+          if (pending > 0) {
+            void startEvaluation(pending)
+          } else if (evalLockRef.current) {
+            evalLockRef.current = false
+            setEvaluating(false)
+            setEvalMsg("Análisis completado.")
+          }
+        }
+      }
+      if (!cancelled) {
+        const wait = evalLockRef.current ? POLL_FAST_MS : POLL_MS
+        timer = setTimeout(() => { void tick() }, wait)
+      }
     }
+
+    timer = setTimeout(() => { void tick() }, POLL_MS)
+
+    function onVisible() {
+      if (document.visibilityState === "visible") {
+        void load({ force: true, silent: true })
+      }
+    }
+    document.addEventListener("visibilitychange", onVisible)
+
+    return () => {
+      cancelled = true
+      if (timer !== null) clearTimeout(timer)
+      document.removeEventListener("visibilitychange", onVisible)
+    }
+  }, [load, startEvaluation])
+
+  async function handleEvaluate() {
+    await startEvaluation()
   }
 
   const total = candidates.length
@@ -161,7 +246,7 @@ export default function CandidatesPage({ params }: Props) {
             </Button>
           )}
           <Button
-            onClick={() => void load(true)}
+            onClick={() => void load({ force: true })}
             disabled={loading}
             variant="ghost"
             size="sm"
@@ -171,6 +256,8 @@ export default function CandidatesPage({ params }: Props) {
           </Button>
         </div>
       </div>
+
+      <ApplyLinkCopy jobId={params.job_id} className="mb-6" />
 
       {error ? (
         <div className="rounded-xl border border-[var(--ds-accent-red)]/30 bg-[var(--ds-accent-red)]/10 p-4 text-sm text-[var(--ds-accent-red)]">

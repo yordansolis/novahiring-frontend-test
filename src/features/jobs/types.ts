@@ -43,12 +43,25 @@ export interface JobRanking {
   candidates: RankingCandidate[]
 }
 
+export const MAX_CANDIDATES_PER_JOB = 3
+
 export interface JobListItem {
   job_id: string
   title: string
   niche: string
   status: string
   tenant_id: string
+  candidate_count: number
+  max_candidates: number
+}
+
+export interface JobApplyInfo {
+  job_id: string
+  title: string
+  status: "active" | "closed"
+  applications_open: boolean
+  candidate_count: number
+  max_candidates: number
 }
 
 export interface JobListResponse {

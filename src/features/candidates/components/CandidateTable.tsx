@@ -200,7 +200,7 @@ export function CandidateTable({ candidates }: Props) {
                 )}
               </td>
               <td className="px-5 py-4">
-                {c.login_username !== null && c.login_password !== null ? (
+                {c.login_username != null && c.login_password != null ? (
                   <CredentialCell
                     username={c.login_username}
                     password={c.login_password}

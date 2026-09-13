@@ -78,6 +78,7 @@ export interface JobAuditCandidate {
   rank: number | null
   account_activated: boolean
   invitation_sent: boolean
+  invitation_email_status: "sent" | "failed" | "not_configured" | "simulated_sent" | null
   notifications_sent: string[]
   is_winner: boolean
   session_id: string | null
@@ -170,5 +171,14 @@ export interface EmailHealthResponse {
   status: "ok" | "error"
   host: string
   port: number
+  error: string | null
+}
+
+export interface SendInvitationsResponse {
+  job_id: string
+  attempted: number
+  sent: number
+  failed: number
+  smtp_configured: boolean
   error: string | null
 }

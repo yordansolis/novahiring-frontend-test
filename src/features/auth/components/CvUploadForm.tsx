@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { AlertCircle, CheckCircle2, Info, Upload, X } from "lucide-react"
 
@@ -9,6 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { FocusField } from "@/components/ui/focus-field"
 import { uploadCv } from "@/features/auth/services/authApi"
+import { getJobApplyInfo } from "@/features/jobs/services/jobsApi"
+import type { JobApplyInfo } from "@/features/jobs/types"
 import type { AuthError, CvUploadResponse } from "@/features/auth/types"
 
 const ALLOWED_TYPES = [
@@ -29,7 +31,7 @@ interface ErrorMessageMap {
 }
 
 const ERROR_MESSAGES: ErrorMessageMap = {
-  applications_closed: "Esta posición ya no acepta más candidatos.",
+  applications_closed: "Esta vacante ya no acepta más candidatos.",
   duplicate_applicant:
     "Ya existe una candidatura registrada con este email para este puesto.",
   duplicate_cv: "Este CV ya fue registrado anteriormente.",
@@ -66,6 +68,20 @@ export function CvUploadForm({ jobId }: Props) {
   const [file, setFile] = useState<File | null>(null)
   const [dragging, setDragging] = useState(false)
   const [submitState, setSubmitState] = useState<SubmitState>({ type: "idle" })
+  const [applyInfo, setApplyInfo] = useState<JobApplyInfo | null>(null)
+  const [applyError, setApplyError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    void getJobApplyInfo(jobId)
+      .then((info) => {
+        if (!cancelled) setApplyInfo(info)
+      })
+      .catch(() => {
+        if (!cancelled) setApplyError("No se encontró esta vacante.")
+      })
+    return () => { cancelled = true }
+  }, [jobId])
 
   function handleFileChange(incoming: File | null) {
     if (!incoming) return
@@ -96,6 +112,28 @@ export function CvUploadForm({ jobId }: Props) {
       const authErr = err as AuthError
       setSubmitState({ type: "error", message: getUploadError(authErr) })
     }
+  }
+
+  if (applyInfo === null && applyError === null) {
+    return (
+      <div className="rounded-xl border border-[var(--ds-border)] bg-[var(--ds-background-200)] p-8 shadow-xl">
+        <div className="h-6 w-48 animate-pulse rounded bg-[var(--ds-background-300)]" />
+        <div className="mt-3 h-4 w-64 animate-pulse rounded bg-[var(--ds-background-300)]" />
+      </div>
+    )
+  }
+
+  if (applyError !== null || (applyInfo !== null && !applyInfo.applications_open)) {
+    return (
+      <div className="rounded-xl border border-[var(--ds-border)] bg-[var(--ds-background-200)] p-8 text-center shadow-xl">
+        <h1 className="text-xl font-semibold text-[var(--ds-gray-1000)]">
+          {applyInfo?.title ?? "Esta vacante"}
+        </h1>
+        <p className="mt-2 text-sm text-[var(--ds-gray-600)]">
+          Esta vacante ya no se encuentra disponible.
+        </p>
+      </div>
+    )
   }
 
   if (submitState.type === "success") {
@@ -153,11 +191,14 @@ export function CvUploadForm({ jobId }: Props) {
   return (
     <div className="rounded-xl border border-[var(--ds-border)] bg-[var(--ds-background-200)] p-8 shadow-xl">
       <div className="mb-7 flex flex-col gap-1">
-        <h1 className="text-xl font-semibold text-[var(--ds-gray-1000)]">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-[var(--ds-gray-500)]">
           Enviar candidatura
+        </p>
+        <h1 className="text-xl font-semibold text-[var(--ds-gray-1000)]">
+          {applyInfo?.title ?? "Vacante"}
         </h1>
         <p className="text-sm text-[var(--ds-gray-600)]">
-          Sube tu CV para aplicar a esta oferta de empleo.
+          Sube tu CV para aplicar. {applyInfo?.candidate_count ?? 0}/{applyInfo?.max_candidates ?? 3} candidatos.
         </p>
       </div>
 

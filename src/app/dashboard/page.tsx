@@ -7,7 +7,9 @@ import { motion } from "framer-motion"
 import { Plus, Briefcase, ArrowRight } from "lucide-react"
 import { hasAdminKey } from "@/lib/api"
 import { getJobs, createJob } from "@/features/jobs/services/jobsApi"
+import { ApplyLinkCopy } from "@/features/jobs/components/ApplyLinkCopy"
 import type { JobListItem, CreateJobRequest } from "@/features/jobs/types"
+import { MAX_CANDIDATES_PER_JOB } from "@/features/jobs/types"
 import { AdminSidebar } from "@/components/admin/AdminSidebar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -51,10 +53,10 @@ export default function DashboardPage() {
     }
   }, [router])
 
-  const loadJobs = useCallback(async () => {
+  const loadJobs = useCallback(async (force = false) => {
     setLoading(true)
     try {
-      const data = await getJobs()
+      const data = await getJobs(force)
       setJobs(data.jobs)
     } catch {
       setJobs([])
@@ -86,7 +88,7 @@ export default function DashboardPage() {
       }
       const newJob = await createJob(request)
       setSheetOpen(false)
-      await loadJobs()
+      await loadJobs(true)
       router.push(`/jobs/${newJob.job_id}`)
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : "Error al crear la vacante")
@@ -144,7 +146,7 @@ export default function DashboardPage() {
                 <p className="mt-1 text-sm text-[var(--ds-gray-600)]">
                   {loading
                     ? "Cargando..."
-                    : `${jobs.length} convocatoria${jobs.length !== 1 ? "s" : ""}`}
+                    : `${jobs.length} convocatoria${jobs.length !== 1 ? "s" : ""} · ${MAX_CANDIDATES_PER_JOB} candidatos por vacante`}
                 </p>
               </div>
 
@@ -180,24 +182,27 @@ export default function DashboardPage() {
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {jobs.map((job) => (
-                    <Link
+                    <div
                       key={job.job_id}
-                      href={`/jobs/${job.job_id}`}
-                      className="group block"
+                      className="flex h-full flex-col rounded-xl border border-white/[0.14] bg-[var(--ds-background-200)] transition-colors hover:bg-[var(--ds-background-300)]/80"
                     >
-                      <div className="h-full rounded-xl border border-white/[0.14] bg-[var(--ds-background-200)] p-5 transition-colors hover:bg-[var(--ds-background-300)]/80">
+                      <Link href={`/jobs/${job.job_id}`} className="block flex-1 p-5 pb-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-[var(--ds-accent-blue)]/10">
                             <Briefcase className="size-4 text-[var(--ds-accent-blue)]" />
                           </div>
                           <span
                             className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                              job.status === "active"
-                                ? "bg-[var(--ds-accent-green)]/10 text-[var(--ds-accent-green)]"
-                                : "bg-[var(--ds-background-300)] text-[var(--ds-gray-500)]"
+                              job.status === "closed" || job.candidate_count >= job.max_candidates
+                                ? "bg-[var(--ds-background-300)] text-[var(--ds-gray-500)]"
+                                : "bg-[var(--ds-accent-green)]/10 text-[var(--ds-accent-green)]"
                             }`}
                           >
-                            {job.status === "active" ? "Activa" : job.status}
+                            {job.status === "closed"
+                              ? "Cerrada"
+                              : job.candidate_count >= job.max_candidates
+                                ? "Cupo completo"
+                                : "Activa"}
                           </span>
                         </div>
                         <div className="mt-3">
@@ -205,13 +210,31 @@ export default function DashboardPage() {
                             {job.title}
                           </p>
                           <p className="mt-1 text-xs text-[var(--ds-gray-500)]">{job.niche}</p>
+                          <p className="mt-2 font-mono text-xs tabular-nums text-[var(--ds-gray-600)]">
+                            <span
+                              className={
+                                job.status === "closed" || job.candidate_count >= job.max_candidates
+                                  ? "font-semibold text-[var(--ds-gray-1000)]"
+                                  : "font-semibold text-[var(--ds-accent-blue)]"
+                              }
+                            >
+                              {job.candidate_count}
+                            </span>
+                            <span className="text-[var(--ds-gray-500)]">/{job.max_candidates} candidatos</span>
+                          </p>
                         </div>
-                        <div className="mt-4 flex items-center gap-1 text-xs font-medium text-[var(--ds-accent-blue)] opacity-0 transition-opacity group-hover:opacity-100">
-                          Abrir workspace
+                      </Link>
+                      <div className="flex items-center justify-between gap-2 px-3 pb-3">
+                        <ApplyLinkCopy jobId={job.job_id} variant="compact" />
+                        <Link
+                          href={`/jobs/${job.job_id}`}
+                          className="inline-flex items-center gap-1 pr-2 text-xs font-medium text-[var(--ds-accent-blue)]"
+                        >
+                          Abrir
                           <ArrowRight className="size-3" />
-                        </div>
+                        </Link>
                       </div>
-                    </Link>
+                    </div>
                   ))}
                 </div>
               )}
@@ -239,6 +262,14 @@ export default function DashboardPage() {
             onSubmit={(e) => void handleCreateJob(e)}
             className="flex flex-col gap-4 px-5 py-5"
           >
+            <div className="rounded-xl border border-white/[0.14] bg-[var(--ds-background-300)] px-4 py-3">
+              <p className="font-mono text-3xl font-semibold tabular-nums text-[var(--ds-gray-1000)]">
+                {MAX_CANDIDATES_PER_JOB}
+              </p>
+              <p className="mt-0.5 text-xs text-[var(--ds-gray-600)]">
+                candidatos máximo. Al llegar a {MAX_CANDIDATES_PER_JOB}, las postulaciones se cierran.
+              </p>
+            </div>
             <div className="flex flex-col gap-1.5">
               <Label
                 htmlFor="dash-title"
